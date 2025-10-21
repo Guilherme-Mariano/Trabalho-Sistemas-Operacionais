@@ -3,6 +3,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import java.util.concurrent.Semaphore;
 import java.util.Random;
+import java.util.List; // Importar List
 
 public class Main {
 
@@ -25,16 +26,38 @@ public class Main {
             Semaphore mutexArmazemA = new Semaphore(1); 
 
             // 1. Cria os objetos estáticos PRIMEIRO
+            // Suas coordenadas atualizadas (Y=580) foram mantidas
             CityObject cidadeA = new CityObject(painel, 50, 580); 
             Warehouse armazemA = new Warehouse(painel, 50, 400); 
             CityObject cidadeB = new CityObject(painel, 900, 580);
             Warehouse armazemB = new Warehouse(painel, 900, 400);
 
+            // --- NOVO: Cria o Trilho ---
+            int trackYPosition = 390; // Posição Y do trilho
+            int trackPieceWidth = 50; 
+            int trackPieceHeight = 40;
+            int numberOfTrackPieces = 22; // Cobre aprox. 1100 pixels
+            Track trainTrack = new Track(
+                painel, 
+                10, // X inicial
+                trackYPosition, 
+                trackPieceWidth, 
+                trackPieceHeight, 
+                numberOfTrackPieces, 
+                "/GameAsset/track.png" // Imagem do trilho
+            );
+            
             // 2. Cria a thread do Trem
             ThreadTrem tremThread = new ThreadTrem(painel, semaforoCaixasProntas, N_CAIXAS_PARA_PARTIDA);
             
-            // 3. Registra os objetos estáticos e o trem
-            painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico());
+            // 3. Registra os objetos estáticos, O TRILHO, e o trem
+            // IMPORTANTE: Adiciona o trilho ANTES do trem, para o trem ficar por cima
+            List<ObjetoGrafico> trackPieces = trainTrack.getTrackPieces();
+            for(ObjetoGrafico piece : trackPieces) {
+                painel.adicionarObjetoParaDesenhar(piece);
+            }
+            
+            painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico()); // Trem adicionado DEPOIS do trilho
             painel.adicionarObjetoParaDesenhar(cidadeA.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(armazemA.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(cidadeB.getObjetoGrafico());
@@ -55,9 +78,8 @@ public class Main {
                             tempoDeTrabalho          
                         );
                         
-                        // MUDANÇA: Adiciona o robô E a sua caixa ao painel
+                        // Adiciona o robô E a sua caixa ao painel
                         painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
-                        // Pega a caixa DE DENTRO do empacotador e adiciona
                         if (novoEmpacotador.getBox() != null && novoEmpacotador.getBox().getObjetoGrafico() != null) {
                              painel.adicionarObjetoParaDesenhar(novoEmpacotador.getBox().getObjetoGrafico());
                         } else {
