@@ -1,6 +1,7 @@
+// Main.java
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import java.util.concurrent.Semaphore; // Importe a classe Semaphore
+import java.util.concurrent.Semaphore;
 
 public class Main {
 
@@ -9,7 +10,6 @@ public class Main {
             JFrame frame = new JFrame("Simulação Sincronizada com Semáforo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            // 1. Cria o painel que desenhará tudo
             PainelDeDesenho painel = new PainelDeDesenho();
             frame.add(painel);
             
@@ -19,20 +19,24 @@ public class Main {
 
             // --- COORDENAÇÃO CENTRAL ---
 
-            // 2. Crie UMA ÚNICA instância do semáforo aqui.
-            // O valor '0' significa que ele começa sem permissões. O trem será forçado
-            // a esperar até que o empacotador libere a primeira permissão.
             Semaphore semaforoCompartilhado = new Semaphore(0);
 
-            // 3. Crie as threads, injetando o MESMO semáforo em ambas.
+            // --- Cria as Threads ---
             ThreadTrem tremThread = new ThreadTrem(painel, semaforoCompartilhado);
-            ThreadEmpacotador empacotadorThread = new ThreadEmpacotador(painel, semaforoCompartilhado);
+            ThreadEmpacotador empacotadorThread = new ThreadEmpacotador(painel, semaforoCompartilhado, 50);
             
-            // 4. Adicione os objetos gráficos de cada thread ao painel
+            CityObject cidadeA = new CityObject(painel, 50, 400); 
+            CityObject cidadeB = new CityObject(painel, 900, 400);
+
+            // --- Registra TODOS os objetos gráficos no painel ---
             painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(empacotadorThread.getObjetoGrafico());
             
-            // 5. Inicie as threads. Elas agora se comunicarão através do semáforo.
+            // --- NOVO: Adiciona as cidades ao painel ---
+            painel.adicionarObjetoParaDesenhar(cidadeA.getObjetoGrafico());
+            painel.adicionarObjetoParaDesenhar(cidadeB.getObjetoGrafico());
+            
+            // --- Inicia as Threads ---
             tremThread.start();
             empacotadorThread.start();
         });

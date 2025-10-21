@@ -8,6 +8,7 @@ public class ThreadEmpacotador extends Thread {
     private Semaphore pacotesProntos;
     private PainelDeDesenho painel;
     private Random random; // Objeto para gerar números aleatórios
+    private int work_time;
 
     private final String[] framesAnimacao = {
         "/GameAsset/robot_ready.png",
@@ -19,10 +20,11 @@ public class ThreadEmpacotador extends Thread {
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300; // Ele vai sortear um X entre 20 e 320
 
-    public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos) {
+    public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, int work_time) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
         this.random = new Random();
+        this.work_time = work_time;
 
         // MUDANÇA: Sorteia uma posição X aleatória dentro da área de spawn
         int xAleatorio = SPAWN_X_INICIAL + random.nextInt(SPAWN_X_LARGURA);
@@ -52,7 +54,7 @@ public class ThreadEmpacotador extends Thread {
             // 2. Realiza UMA PARTE do trabalho (CPU-bound)
             // Este laço é a "pausa" que dá tempo para vermos o frame
             double soma = 0;
-            for (int i = 0; i < 500; i++) {
+            for (int i = 0; i < this.work_time*100; i++) {
                 for (int j = 0; j < 5000; j++) {
                     soma = soma + Math.sin(i) * Math.cos(j);
                 }
