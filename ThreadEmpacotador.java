@@ -148,12 +148,11 @@ public class ThreadEmpacotador extends Thread {
         
         
         
-        // 4. Lógica de Sincronização (acontece "invisivelmente" agora)
+        // 4. Sincronização
         try {
             System.out.println("Empacotador (Thread " + this.getId() + ") na fila do armazém (invisível)...");
             mutexArmazem.acquire(); 
 
-            // Simula o tempo de acesso/armazenamento (sem animação visual)
             simularAcessoArmazem();
             
             // 2. Move-se até o armazém (com a caixa visível acima)
@@ -163,13 +162,12 @@ public class ThreadEmpacotador extends Thread {
         // Faz mas sentido após mutex
         moveTo(targetX, targetY, Box.State.ABOVE); // Move com a caixa ACIMA
 
-        // ---- MUDANÇA PRINCIPAL ----
         // 3. Chegou ao armazém -> Desaparece IMEDIATAMENTE
         System.out.println("Empacotador (Thread " + this.getId() + ") chegou e desapareceu.");
         SwingUtilities.invokeLater(() -> {
             empacotadorObj.setVisible(false);
             myBox.setVisible(false); // Esconde a caixa também
-            painel.repaint(); // Garante que desapareçam visualmente
+            painel.repaint(); // Garante que desapareçam 
         });
 
 
@@ -183,11 +181,6 @@ public class ThreadEmpacotador extends Thread {
             mutexArmazem.release(); 
             System.out.println("Empacotador (Thread " + this.getId() + ") saiu do armazém (invisível).");
         }
-
-        // 5. REMOVIDO: Não há mais viagem de volta.
-
-        // 6. REMOVIDO: Não precisa remover do painel, pois já está invisível.
-        // A thread termina aqui naturalmente.
         System.out.println("Empacotador (Thread " + this.getId() + ") terminou.");
     }
 }

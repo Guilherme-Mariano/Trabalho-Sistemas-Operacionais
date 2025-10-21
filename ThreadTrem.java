@@ -39,6 +39,7 @@ public class ThreadTrem extends Thread {
         });
     }
 
+    // Trabalho de carregar talvez seja desnecessário
     public void load_up() {
         System.out.println("Trem carregando...");
         for (int i = 0; i < TRABALHO_DE_CARGA; i++) {
@@ -60,6 +61,7 @@ public class ThreadTrem extends Thread {
         System.out.println("Trem viajando para a Direita...");
         for (int i = 0; i < DISTANCIA_VIAGEM; i++) {
             simularPassoDeTrabalho();
+            // Passo do thread
             moveGameObj(2, 0);
         }
         System.out.println("Trem chegou ao destino (Direita).");
@@ -70,6 +72,7 @@ public class ThreadTrem extends Thread {
         System.out.println("Trem voltando para a Esquerda...");
         for (int i = 0; i < DISTANCIA_VIAGEM; i++) {
             simularPassoDeTrabalho();
+            // Passo do thread
             moveGameObj(-2, 0);
         }
         System.out.println("Trem chegou à origem (Esquerda).");
@@ -84,7 +87,7 @@ public class ThreadTrem extends Thread {
                 pacotesProntos.acquire(caixasNecessarias);
                 System.out.println("<<< " + caixasNecessarias + " CAIXAS RECEBIDAS! Trem iniciando ciclo de carga.");
                 
-                load_up();
+                //load_up();
                 go_right();
                 unload();
                 go_left();

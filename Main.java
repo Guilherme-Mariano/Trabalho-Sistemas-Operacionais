@@ -26,13 +26,11 @@ public class Main {
             Semaphore mutexArmazemA = new Semaphore(1); 
 
             // 1. Cria os objetos estáticos PRIMEIRO
-            // Suas coordenadas atualizadas (Y=580) foram mantidas
             CityObject cidadeA = new CityObject(painel, 50, 580); 
             Warehouse armazemA = new Warehouse(painel, 50, 400); 
             CityObject cidadeB = new CityObject(painel, 900, 580);
             Warehouse armazemB = new Warehouse(painel, 900, 400);
 
-            // --- NOVO: Cria o Trilho ---
             int trackYPosition = 390; // Posição Y do trilho
             int trackPieceWidth = 50; 
             int trackPieceHeight = 40;
@@ -64,7 +62,7 @@ public class Main {
             painel.adicionarObjetoParaDesenhar(armazemB.getObjetoGrafico());
             
             // 4. Cria a thread "Spawner" para os empacotadores
-            // SERA REMOVIDO QUANDO FOR IMPLEMENTADO O INSTANCIADOR NA UI
+            // Necessário por estar em loop
             Thread empacotadorSpawner = new Thread(() -> {
                 Random spawnerRandom = new Random();
                 try {
