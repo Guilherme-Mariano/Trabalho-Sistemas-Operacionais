@@ -77,6 +77,7 @@ public class ThreadTrem extends Thread {
 
     @Override
     public void run() {
+        trainObj.setDirecao(Direcao.DIREITA);
         while (true) {
             try {
                 System.out.println("Trem: esperando por " + caixasNecessarias + " caixas... (Atuais: " + pacotesProntos.availablePermits() + ")");

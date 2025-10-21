@@ -7,7 +7,7 @@ import java.util.List; // Importar List
 
 public class Main {
 
-    private static final int N_CAIXAS_PARA_PARTIDA = 30;
+    private static final int N_CAIXAS_PARA_PARTIDA = 5;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -64,6 +64,7 @@ public class Main {
             painel.adicionarObjetoParaDesenhar(armazemB.getObjetoGrafico());
             
             // 4. Cria a thread "Spawner" para os empacotadores
+            // SERA REMOVIDO QUANDO FOR IMPLEMENTADO O INSTANCIADOR NA UI
             Thread empacotadorSpawner = new Thread(() -> {
                 Random spawnerRandom = new Random();
                 try {
@@ -88,7 +89,8 @@ public class Main {
                         
                         novoEmpacotador.start();
 
-                        int delaySpawn = 2000 + spawnerRandom.nextInt(3000);
+                        //int delaySpawn = 2000 + spawnerRandom.nextInt(3000);
+                        int delaySpawn = 100 + spawnerRandom.nextInt(3000);
                         Thread.sleep(delaySpawn);
                     }
                 } catch (InterruptedException e) {
@@ -96,7 +98,6 @@ public class Main {
                 }
             });
 
-            // 5. Inicia as threads principais
             tremThread.start();
             empacotadorSpawner.start();
         });

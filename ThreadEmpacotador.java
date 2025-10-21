@@ -146,10 +146,21 @@ public class ThreadEmpacotador extends Thread {
         System.out.println("Empacotador (Thread " + this.getId() + ") trabalhando...");
         simularTrabalho(); 
         
-        // 2. Move-se até o armazém (com a caixa visível acima)
+        
+        
+        // 4. Lógica de Sincronização (acontece "invisivelmente" agora)
+        try {
+            System.out.println("Empacotador (Thread " + this.getId() + ") na fila do armazém (invisível)...");
+            mutexArmazem.acquire(); 
+
+            // Simula o tempo de acesso/armazenamento (sem animação visual)
+            simularAcessoArmazem();
+            
+            // 2. Move-se até o armazém (com a caixa visível acima)
         System.out.println("Empacotador (Thread " + this.getId() + ") movendo para o armazém...");
         int targetX = targetWarehouse.getObjetoGrafico().getX() + 10; // Sua coordenada X
         int targetY = targetWarehouse.getObjetoGrafico().getY() + 10; // Sua coordenada Y
+        // Faz mas sentido após mutex
         moveTo(targetX, targetY, Box.State.ABOVE); // Move com a caixa ACIMA
 
         // ---- MUDANÇA PRINCIPAL ----
@@ -160,15 +171,8 @@ public class ThreadEmpacotador extends Thread {
             myBox.setVisible(false); // Esconde a caixa também
             painel.repaint(); // Garante que desapareçam visualmente
         });
-        
-        // 4. Lógica de Sincronização (acontece "invisivelmente" agora)
-        try {
-            System.out.println("Empacotador (Thread " + this.getId() + ") na fila do armazém (invisível)...");
-            mutexArmazem.acquire(); 
 
-            // Simula o tempo de acesso/armazenamento (sem animação visual)
-            simularAcessoArmazem();
-            
+
             // Libera o semáforo para o trem
             pacotesProntos.release();
             System.out.println(">>> PACOTE PRONTO (Thread " + this.getId() + "). Total de caixas: " + pacotesProntos.availablePermits());
