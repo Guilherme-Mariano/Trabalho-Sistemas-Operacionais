@@ -25,11 +25,10 @@ public class Main {
             Semaphore mutexArmazemA = new Semaphore(1); 
 
             // 1. Cria os objetos estáticos PRIMEIRO
-            // As coordenadas aqui (Y=400) são cruciais.
             CityObject cidadeA = new CityObject(painel, 50, 580); 
-            Warehouse armazemA = new Warehouse(painel, 50, 350); // Posição do armazém A
+            Warehouse armazemA = new Warehouse(painel, 50, 400); 
             CityObject cidadeB = new CityObject(painel, 900, 580);
-            Warehouse armazemB = new Warehouse(painel, 900, 350);
+            Warehouse armazemB = new Warehouse(painel, 900, 400);
 
             // 2. Cria a thread do Trem
             ThreadTrem tremThread = new ThreadTrem(painel, semaforoCaixasProntas, N_CAIXAS_PARA_PARTIDA);
@@ -48,7 +47,6 @@ public class Main {
                     while (true) {
                         int tempoDeTrabalho = 50; 
                         
-                        // Passa todos os 5 argumentos
                         ThreadEmpacotador novoEmpacotador = new ThreadEmpacotador(
                             painel,                  
                             semaforoCaixasProntas,   
@@ -57,7 +55,15 @@ public class Main {
                             tempoDeTrabalho          
                         );
                         
+                        // MUDANÇA: Adiciona o robô E a sua caixa ao painel
                         painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
+                        // Pega a caixa DE DENTRO do empacotador e adiciona
+                        if (novoEmpacotador.getBox() != null && novoEmpacotador.getBox().getObjetoGrafico() != null) {
+                             painel.adicionarObjetoParaDesenhar(novoEmpacotador.getBox().getObjetoGrafico());
+                        } else {
+                             System.err.println("ERRO: Caixa ou Objeto Gráfico da Caixa nulos no Spawner!");
+                        }
+                        
                         novoEmpacotador.start();
 
                         int delaySpawn = 2000 + spawnerRandom.nextInt(3000);

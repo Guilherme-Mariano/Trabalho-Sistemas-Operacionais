@@ -14,12 +14,14 @@ public class ObjetoGrafico {
     private ImageIcon imagemEspelhada;
     private List<ImageIcon> animationFrames;
 
-    // A correção 'volatile' para o bug de movimento
     private volatile int x;
     private volatile int y;
     
     private int largura;
     private int altura;
+    
+    // Flag de visibilidade adicionada
+    private volatile boolean isVisible = true; // Objetos começam visíveis por padrão
 
     /** Construtor para uma única imagem com espelhamento (Trem, Cidade, Armazém). */
     public ObjetoGrafico(String caminhoDaImagem, int xInicial, int yInicial, int larguraDesejada, int alturaDesejada) {
@@ -70,6 +72,7 @@ public class ObjetoGrafico {
     }
 
     private ImageIcon criarImagemEspelhada(Image img) {
+        if (largura <= 0 || altura <= 0) return null; // Previne erro se dimensões forem inválidas
         BufferedImage bufferedImage = new BufferedImage(largura, altura, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = bufferedImage.createGraphics();
         AffineTransform tx = AffineTransform.getScaleInstance(-1, 1);
@@ -81,6 +84,7 @@ public class ObjetoGrafico {
     }
     
     public void setDirecao(Direcao direcao) {
+        if (imagemOriginal == null || imagemEspelhada == null) return; // Segurança
         if (direcao == Direcao.DIREITA) {
             this.imagemAtual = this.imagemEspelhada;
         } else {
@@ -94,9 +98,12 @@ public class ObjetoGrafico {
         }
     }
 
-    // O MÉTODO ESTÁ AQUI!
+    // --- Getters e Setters ---
+    public int getLargura() { return largura; }
+    public int getAltura() { return altura; }
+    public boolean isVisible() { return isVisible; }
+    public void setVisible(boolean visible) { this.isVisible = visible; }
     public ImageIcon getImagem() { return imagemAtual; }
-    
     public int getX() { return x; }
     public int getY() { return y; }
     public void setLocation(int x, int y) { this.x = x; this.y = y; }

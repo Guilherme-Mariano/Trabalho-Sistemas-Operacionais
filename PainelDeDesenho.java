@@ -27,12 +27,22 @@ public class PainelDeDesenho extends JPanel {
     }
 
     public void adicionarObjetoParaDesenhar(ObjetoGrafico obj) {
-        this.objetosParaDesenhar.add(obj);
+        if (obj != null) { // Adiciona verificação de nulo
+            this.objetosParaDesenhar.add(obj);
+        } else {
+            System.err.println("Tentativa de adicionar objeto gráfico nulo ao painel!");
+        }
     }
 
     public void removerObjetoParaDesenhar(ObjetoGrafico obj) {
-        this.objetosParaDesenhar.remove(obj);
-        this.repaint();
+        if (obj != null) { // Adiciona verificação de nulo
+            boolean removed = this.objetosParaDesenhar.remove(obj);
+            if(removed) {
+                this.repaint();
+            } else {
+                 System.err.println("Tentativa de remover objeto gráfico que não está na lista!");
+            }
+        }
     }
 
     @Override
@@ -48,7 +58,8 @@ public class PainelDeDesenho extends JPanel {
 
         synchronized (objetosParaDesenhar) {
             for (ObjetoGrafico obj : objetosParaDesenhar) {
-                if (obj != null && obj.getImagem() != null) {
+                // MUDANÇA: Só desenha se o objeto estiver visível
+                if (obj != null && obj.isVisible() && obj.getImagem() != null) {
                     g.drawImage(obj.getImagem().getImage(), obj.getX(), obj.getY(), this);
                 }
             }
