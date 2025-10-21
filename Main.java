@@ -26,7 +26,7 @@ public class Main {
             ThreadEmpacotador empacotadorThread = new ThreadEmpacotador(painel, semaforoCompartilhado, 50);
             
             CityObject cidadeA = new CityObject(painel, 50, 400); 
-            CityObject cidadeB = new CityObject(painel, 900, 400);
+            CityObject cidadeB = new CityObject(painel, 1050, 400);
 
             // --- Registra TODOS os objetos gráficos no painel ---
             painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico());
