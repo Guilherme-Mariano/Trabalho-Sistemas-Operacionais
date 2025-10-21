@@ -16,7 +16,7 @@ public class ThreadTrem extends Thread {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
         this.caixasNecessarias = caixasNecessarias;
-        this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 50, 100, 120, 80);
+        this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 50, 350, 120, 80);
     }
 
     public ObjetoGrafico getObjetoGrafico() {

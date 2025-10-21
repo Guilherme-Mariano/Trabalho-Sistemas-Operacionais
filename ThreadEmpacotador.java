@@ -22,7 +22,7 @@ public class ThreadEmpacotador extends Thread {
     };
 
     // As coordenadas aqui (Y=600) são cruciais.
-    private static final int SPAWN_Y = 600;
+    private static final int SPAWN_Y = 400;
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300;
     private static final int MOVING_STEPS = 1000;
@@ -38,7 +38,7 @@ public class ThreadEmpacotador extends Thread {
         this.spawnX = SPAWN_X_INICIAL + random.nextInt(SPAWN_X_LARGURA);
         this.spawnY = SPAWN_Y;
         
-        this.empacotadorObj = new ObjetoGrafico(this.spawnX, this.spawnY, 150, 150, framesAnimacao);
+        this.empacotadorObj = new ObjetoGrafico(this.spawnX, this.spawnY, 80, 80, framesAnimacao);
     }
     
     public ObjetoGrafico getObjetoGrafico() {
@@ -132,8 +132,8 @@ public class ThreadEmpacotador extends Thread {
         
         // 2. Move-se até o armazém
         System.out.println("Empacotador (Thread " + this.getId() + ") movendo para o armazém...");
-        int targetX = targetWarehouse.getObjetoGrafico().getX() + 20; 
-        int targetY = targetWarehouse.getObjetoGrafico().getY() + 100; // Y=400 + 100 = 500
+        int targetX = targetWarehouse.getObjetoGrafico().getX() + 10; 
+        int targetY = targetWarehouse.getObjetoGrafico().getY() + 10; // Y=400 + 100 = 500
         moveTo(targetX, targetY);
 
         // 3. Tenta acessar o armazém (lógica de mutex)

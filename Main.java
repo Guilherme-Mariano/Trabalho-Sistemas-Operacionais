@@ -26,9 +26,9 @@ public class Main {
 
             // 1. Cria os objetos estáticos PRIMEIRO
             // As coordenadas aqui (Y=400) são cruciais.
-            CityObject cidadeA = new CityObject(painel, 50, 480); 
+            CityObject cidadeA = new CityObject(painel, 50, 580); 
             Warehouse armazemA = new Warehouse(painel, 50, 350); // Posição do armazém A
-            CityObject cidadeB = new CityObject(painel, 900, 480);
+            CityObject cidadeB = new CityObject(painel, 900, 580);
             Warehouse armazemB = new Warehouse(painel, 900, 350);
 
             // 2. Cria a thread do Trem
