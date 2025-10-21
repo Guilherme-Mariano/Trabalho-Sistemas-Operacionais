@@ -10,14 +10,13 @@ public class ThreadTrem extends Thread {
     private ObjetoGrafico trainObj;
     private PainelDeDesenho painel;
     private Semaphore pacotesProntos;
-    private int caixasNecessarias; // REQUISITO: N=30
+    private int caixasNecessarias; 
 
-    // REQUISITO: Construtor atualizado
     public ThreadTrem(PainelDeDesenho painel, Semaphore pacotesProntos, int caixasNecessarias) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
-        this.caixasNecessarias = caixasNecessarias; // Armazena o N=30
-        this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 10, 370, 200, 120);
+        this.caixasNecessarias = caixasNecessarias;
+        this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 50, 100, 120, 80);
     }
 
     public ObjetoGrafico getObjetoGrafico() {
@@ -80,13 +79,8 @@ public class ThreadTrem extends Thread {
     public void run() {
         while (true) {
             try {
-                // REQUISITO: O trem agora espera por N=30 caixas.
                 System.out.println("Trem: esperando por " + caixasNecessarias + " caixas... (Atuais: " + pacotesProntos.availablePermits() + ")");
-                
-                // O trem vai BLOQUEAR aqui até que 30 permissões sejam liberadas
-                // pelos empacotadores.
                 pacotesProntos.acquire(caixasNecessarias);
-                
                 System.out.println("<<< " + caixasNecessarias + " CAIXAS RECEBIDAS! Trem iniciando ciclo de carga.");
                 
                 load_up();

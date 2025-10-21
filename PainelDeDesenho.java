@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities; // Importado
 
 public class PainelDeDesenho extends JPanel {
 
@@ -31,13 +30,8 @@ public class PainelDeDesenho extends JPanel {
         this.objetosParaDesenhar.add(obj);
     }
 
-    /**
-     * NOVO MÉTODO: Remove um objeto gráfico da tela.
-     */
     public void removerObjetoParaDesenhar(ObjetoGrafico obj) {
         this.objetosParaDesenhar.remove(obj);
-        // Solicita um repaint para garantir que o objeto desaparecido seja
-        // apagado da tela.
         this.repaint();
     }
 
@@ -52,8 +46,6 @@ public class PainelDeDesenho extends JPanel {
             g.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        // O 'synchronized' aqui é crucial para evitar ConcurrentModificationException
-        // já que o Spawner adiciona e a thread do Empacotador remove.
         synchronized (objetosParaDesenhar) {
             for (ObjetoGrafico obj : objetosParaDesenhar) {
                 if (obj != null && obj.getImagem() != null) {

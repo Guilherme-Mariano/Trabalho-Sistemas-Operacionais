@@ -14,12 +14,14 @@ public class ObjetoGrafico {
     private ImageIcon imagemEspelhada;
     private List<ImageIcon> animationFrames;
 
-    private int x;
-    private int y;
+    // A correção 'volatile' para o bug de movimento
+    private volatile int x;
+    private volatile int y;
+    
     private int largura;
     private int altura;
 
-    /** Construtor para uma única imagem com espelhamento (usado pelo Trem). */
+    /** Construtor para uma única imagem com espelhamento (Trem, Cidade, Armazém). */
     public ObjetoGrafico(String caminhoDaImagem, int xInicial, int yInicial, int larguraDesejada, int alturaDesejada) {
         this.x = xInicial;
         this.y = yInicial;
@@ -28,7 +30,7 @@ public class ObjetoGrafico {
         carregarEProcessarImagensParaEspelhamento(caminhoDaImagem);
     }
     
-    /** Construtor para múltiplos frames de animação (usado pelo Empacotador). */
+    /** Construtor para múltiplos frames de animação (Empacotador). */
     public ObjetoGrafico(int xInicial, int yInicial, int larguraDesejada, int alturaDesejada, String... caminhosDasImagens) {
         this.x = xInicial;
         this.y = yInicial;
@@ -92,8 +94,10 @@ public class ObjetoGrafico {
         }
     }
 
+    // O MÉTODO ESTÁ AQUI!
     public ImageIcon getImagem() { return imagemAtual; }
+    
     public int getX() { return x; }
     public int getY() { return y; }
-    public void setLocation(int x, int y) { this.x = x; }
+    public void setLocation(int x, int y) { this.x = x; this.y = y; }
 }

@@ -1,5 +1,4 @@
-// CityObject.java
-
+// Warehouse.java
 public class Warehouse {
     private PainelDeDesenho painel;
     private ObjetoGrafico warehouseObj;
@@ -11,8 +10,6 @@ public class Warehouse {
         this.cordX = x;
         this.cordY = y;
 
-        // CORREÇÃO: A ordem dos parâmetros do construtor estava errada.
-        // O caminho da imagem (String) vem primeiro.
         this.warehouseObj = new ObjetoGrafico(
             "/GameAsset/warehouse.png", // 1. Caminho da Imagem
             cordX,                         // 2. X
@@ -21,6 +18,7 @@ public class Warehouse {
             150                            // 5. Altura
         );
     }
+    
     public ObjetoGrafico getObjetoGrafico() {
         return this.warehouseObj;
     }

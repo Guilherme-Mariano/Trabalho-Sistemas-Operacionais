@@ -1,5 +1,4 @@
 // CityObject.java
-
 public class CityObject {
     private PainelDeDesenho painel;
     private ObjetoGrafico cityObj;
@@ -11,8 +10,6 @@ public class CityObject {
         this.cordX = x;
         this.cordY = y;
 
-        // CORREÇÃO: A ordem dos parâmetros do construtor estava errada.
-        // O caminho da imagem (String) vem primeiro.
         this.cityObj = new ObjetoGrafico(
             "/GameAsset/city_skyline.png", // 1. Caminho da Imagem
             cordX,                         // 2. X
@@ -21,6 +18,7 @@ public class CityObject {
             150                            // 5. Altura
         );
     }
+    
     public ObjetoGrafico getObjetoGrafico() {
         return this.cityObj;
     }
