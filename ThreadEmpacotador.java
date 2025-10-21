@@ -6,14 +6,15 @@ import java.util.Random;
 public class ThreadEmpacotador extends Thread {
 
     private ObjetoGrafico empacotadorObj;
-    private Semaphore pacotesProntos;
+    private Semaphore pacotesProntos;   // Semáforo de contagem
+    private Semaphore mutexArmazem;     // Semáforo de acesso exclusivo
     private PainelDeDesenho painel;
     private Random random;
     
-    private Warehouse targetWarehouse; // O armazém para onde o robô deve ir
-    private int spawnX; // Posição X inicial (aleatória)
-    private int spawnY; // Posição Y inicial (fixa)
-    private int workDuration; // Parâmetro de tempo de trabalho
+    private Warehouse targetWarehouse;
+    private int spawnX;
+    private int spawnY;
+    private int workDuration;
 
     private final String[] framesAnimacao = {
         "/GameAsset/robot_ready.png",
@@ -23,13 +24,15 @@ public class ThreadEmpacotador extends Thread {
     private static final int SPAWN_Y = 600;
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300;
-    private static final int MOVING_STEPS = 100; // Passos para a animação de movimento
+    private static final int MOVING_STEPS = 100;
 
-    public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, Warehouse targetWarehouse, int workDuration) {
+    // REQUISITO: Construtor aceitando os 5 parâmetros
+    public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, Semaphore mutexArmazem, Warehouse targetWarehouse, int workDuration) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
-        this.targetWarehouse = targetWarehouse; // Armazena o alvo
-        this.workDuration = workDuration; // Armazena o tempo de trabalho
+        this.mutexArmazem = mutexArmazem; // Armazena o mutex
+        this.targetWarehouse = targetWarehouse;
+        this.workDuration = workDuration;
         this.random = new Random();
 
         this.spawnX = SPAWN_X_INICIAL + random.nextInt(SPAWN_X_LARGURA);
@@ -88,32 +91,39 @@ public class ThreadEmpacotador extends Thread {
     private void moveTo(int targetX, int targetY) {
         int startX = empacotadorObj.getX();
         int startY = empacotadorObj.getY();
-
         float deltaX = targetX - startX;
         float deltaY = targetY - startY;
-
-        // Adicionando logs para depuração
-        System.out.println("  [Thread " + this.getId() + "] Movendo de (" + startX + ", " + startY + ") para (" + targetX + ", " + targetY + ")");
-        System.out.println("  [Thread " + this.getId() + "] DeltaX: " + deltaX + ", DeltaY: " + deltaY);
-
-        // CORREÇÃO: O passo é a distância total (delta) dividida pelo número de passos (MOVING_STEPS)
         float stepX = deltaX / MOVING_STEPS;
         float stepY = deltaY / MOVING_STEPS;
-
-        System.out.println("  [Thread " + this.getId() + "] StepX: " + stepX + ", StepY: " + stepY);
-
         float currentX = startX;
         float currentY = startY;
 
         for (int i = 0; i < MOVING_STEPS; i++) {
             currentX += stepX;
             currentY += stepY;
-            
             updatePositionOnEDT(Math.round(currentX), Math.round(currentY));
             simularPassoDeMovimento();
         }
-        
         updatePositionOnEDT(targetX, targetY);
+    }
+
+    /** REQUISITO: Simula o ato de armazenar (protegido pelo mutex). */
+    private void simularArmazenamento() {
+        System.out.println("  [Thread " + this.getId() + "] ACESSOU. Armazenando...");
+        // Mostra a animação de "armazenando"
+        SwingUtilities.invokeLater(() -> {
+            empacotadorObj.setAnimationFrame(1); // Frame 1 = hands_down
+            painel.repaint();
+        });
+        
+        // Simula um pequeno tempo de trabalho para o ato de armazenar
+        simularPassoDeMovimento(); // Reutiliza o timer de movimento
+        
+        // Volta para a animação "pronto"
+        SwingUtilities.invokeLater(() -> {
+            empacotadorObj.setAnimationFrame(0); // Frame 0 = ready
+            painel.repaint();
+        });
     }
 
     /** O run() agora executa uma vez e a thread morre. */
@@ -127,21 +137,38 @@ public class ThreadEmpacotador extends Thread {
         
         // 2. Move-se até o armazém
         System.out.println("Empacotador (Thread " + this.getId() + ") movendo para o armazém...");
-        
-        // CORREÇÃO: Usa o targetWarehouse para obter as coordenadas dinamicamente
-        int targetX = targetWarehouse.getObjetoGrafico().getX(); 
-        int targetY = targetWarehouse.getObjetoGrafico().getY();
-        
+        int targetX = targetWarehouse.getObjetoGrafico().getX() + 20; 
+        int targetY = targetWarehouse.getObjetoGrafico().getY() + 100;
         moveTo(targetX, targetY);
 
-        // 3. Libera o semáforo para o trem
-        pacotesProntos.release();
-        System.out.println(">>> PACOTE PRONTO (Thread " + this.getId() + "). Itens: " + pacotesProntos.availablePermits());
+        // 3. REQUISITO: Tenta acessar o armazém (lógica de mutex)
+        try {
+            System.out.println("Empacotador (Thread " + this.getId() + ") na fila do armazém...");
+            mutexArmazem.acquire(); // Tenta pegar o "cadeado" do armazém
 
-        // 4. Se descarta (remove da tela)
+            // ----- INÍCIO DA SEÇÃO CRÍTICA -----
+            // Apenas uma thread por vez pode executar este bloco
+            
+            simularArmazenamento();
+            
+            // 4. Libera o semáforo para o trem (adiciona +1 caixa)
+            pacotesProntos.release();
+            System.out.println(">>> PACOTE PRONTO (Thread " + this.getId() + "). Total de caixas: " + pacotesProntos.availablePermits());
+            
+            // ----- FIM DA SEÇÃO CRÍTICA -----
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            mutexArmazem.release(); // Libera o "cadeado" para o próximo
+            System.out.println("Empacotador (Thread " + this.getId() + ") saiu do armazém.");
+        }
+
+        // 5. Se descarta (remove da tela)
         System.out.println("Empacotador (Thread " + this.getId() + ") descartado.");
         SwingUtilities.invokeLater(() -> {
             painel.removerObjetoParaDesenhar(this.empacotadorObj);
         });
+        // A thread morre aqui
     }
 }

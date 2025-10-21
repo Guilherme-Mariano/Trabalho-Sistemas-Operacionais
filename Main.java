@@ -6,6 +6,9 @@ import java.util.Random;
 
 public class Main {
 
+    // REQUISITO: O trem só pode sair com N = 30 caixas.
+    private static final int N_CAIXAS_PARA_PARTIDA = 30;
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Simulação Sincronizada com Semáforo");
@@ -20,7 +23,12 @@ public class Main {
 
             // --- COORDENAÇÃO CENTRAL ---
 
-            Semaphore semaforoCompartilhado = new Semaphore(0);
+            // REQUISITO: Semáforo para contar as caixas prontas (o trem espera por N=30)
+            Semaphore semaforoCaixasProntas = new Semaphore(0);
+
+            // REQUISITO: Semáforo mutex (de acesso exclusivo) para a área de armazenamento
+            // Começa com 1 permissão, significando "disponível".
+            Semaphore mutexArmazemA = new Semaphore(1); 
 
             // 1. Cria os objetos estáticos PRIMEIRO
             CityObject cidadeA = new CityObject(painel, 50, 480); 
@@ -29,7 +37,8 @@ public class Main {
             Warehouse armazemB = new Warehouse(painel, 900, 400);
 
             // 2. Cria a thread do Trem
-            ThreadTrem tremThread = new ThreadTrem(painel, semaforoCompartilhado);
+            // Passa o semáforo de caixas e o número N necessário
+            ThreadTrem tremThread = new ThreadTrem(painel, semaforoCaixasProntas, N_CAIXAS_PARA_PARTIDA);
             
             // 3. Registra os objetos estáticos e o trem
             painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico());
@@ -42,21 +51,24 @@ public class Main {
             Thread empacotadorSpawner = new Thread(() -> {
                 Random spawnerRandom = new Random();
                 try {
+                    // REQUISITO: Loop para criar múltiplos empacotadores
                     while (true) {
                         int tempoDeTrabalho = 50; 
                         
-                        // Garante que o construtor correto (4 argumentos) está sendo chamado
+                        // REQUISITO: Construtor agora passa os 5 argumentos
                         ThreadEmpacotador novoEmpacotador = new ThreadEmpacotador(
                             painel,                  // 1. O painel
-                            semaforoCompartilhado,   // 2. O semáforo
-                            armazemA,                // 3. O armazém de destino
-                            tempoDeTrabalho          // 4. O tempo de trabalho
+                            semaforoCaixasProntas,   // 2. O semáforo de contagem
+                            mutexArmazemA,           // 3. O semáforo mutex
+                            armazemA,                // 4. O armazém de destino
+                            tempoDeTrabalho          // 5. O tempo de trabalho
                         );
                         
                         painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
                         novoEmpacotador.start();
 
-                        int delaySpawn = 10000 + spawnerRandom.nextInt(10000);
+                        // Delay de spawn mais curto (2-5 segundos) para ver múltiplos robôs
+                        int delaySpawn = 2000 + spawnerRandom.nextInt(3000);
                         Thread.sleep(delaySpawn);
                     }
                 } catch (InterruptedException e) {
@@ -66,7 +78,7 @@ public class Main {
 
             // 5. Inicia as threads principais
             tremThread.start();
-            empacotadorSpawner.start();
+            empacotadorSpawner.start(); // Inicia o "Spawner"
         });
     }
 }

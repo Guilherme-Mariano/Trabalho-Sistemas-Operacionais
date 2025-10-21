@@ -1,3 +1,4 @@
+// ThreadTrem.java
 import javax.swing.SwingUtilities;
 import java.util.concurrent.Semaphore;
 
@@ -8,15 +9,15 @@ public class ThreadTrem extends Thread {
 
     private ObjetoGrafico trainObj;
     private PainelDeDesenho painel;
-    private Semaphore pacotesProntos; // O semáforo compartilhado
+    private Semaphore pacotesProntos;
+    private int caixasNecessarias; // REQUISITO: N=30
 
-    /**
-     * O construtor recebe o painel e o semáforo compartilhado.
-     */
-    public ThreadTrem(PainelDeDesenho painel, Semaphore pacotesProntos) {
+    // REQUISITO: Construtor atualizado
+    public ThreadTrem(PainelDeDesenho painel, Semaphore pacotesProntos, int caixasNecessarias) {
         this.painel = painel;
+        this.pacotesProntos = pacotesProntos;
+        this.caixasNecessarias = caixasNecessarias; // Armazena o N=30
         this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 10, 370, 200, 120);
-        this.pacotesProntos = pacotesProntos; // Armazena a referência
     }
 
     public ObjetoGrafico getObjetoGrafico() {
@@ -79,14 +80,15 @@ public class ThreadTrem extends Thread {
     public void run() {
         while (true) {
             try {
-                System.out.println("Trem: esperando por um pacote para poder carregar...");
+                // REQUISITO: O trem agora espera por N=30 caixas.
+                System.out.println("Trem: esperando por " + caixasNecessarias + " caixas... (Atuais: " + pacotesProntos.availablePermits() + ")");
                 
-                // Tenta obter uma permissão. Se nenhuma estiver disponível, a thread BLOQUEIA aqui.
-                pacotesProntos.acquire();
+                // O trem vai BLOQUEAR aqui até que 30 permissões sejam liberadas
+                // pelos empacotadores.
+                pacotesProntos.acquire(caixasNecessarias);
                 
-                System.out.println("<<< PERMISSÃO RECEBIDA! Trem iniciando ciclo de carga.");
-
-                // Uma vez que a permissão foi adquirida, o ciclo normal continua.
+                System.out.println("<<< " + caixasNecessarias + " CAIXAS RECEBIDAS! Trem iniciando ciclo de carga.");
+                
                 load_up();
                 go_right();
                 unload();
