@@ -6,7 +6,7 @@ import java.util.Random;
 public class ThreadEmpacotador extends Thread {
 
     private ObjetoGrafico empacotadorObj;
-    private Box myBox; // O objeto Box pertencente a este empacotador
+    private Box myBox; 
     private Semaphore pacotesProntos;
     private Semaphore mutexArmazem;
     private PainelDeDesenho painel;
@@ -15,34 +15,32 @@ public class ThreadEmpacotador extends Thread {
     private Warehouse targetWarehouse;
     private int spawnX;
     private int spawnY;
-    private int workDuration;
+    private int workDuration; // Tempo em segundos
 
     private final String[] framesAnimacao = {
         "/GameAsset/robot_ready.png",
         "/GameAsset/robot_hands_down.png"
     };
 
-    // Suas configurações de coordenadas e tamanho
+    // Suas configurações
     private static final int SPAWN_Y = 430; 
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300;
-    private static final int MOVING_STEPS = 1000; // Seu número de passos
+    private static final int MOVING_DURATION_SECONDS = 5; // Duração da viagem em segundos
+    private static final int WORK_ANIMATION_STEP_MS = 100; // Delay da animação de trabalho
 
     public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, Semaphore mutexArmazem, Warehouse targetWarehouse, int workDuration) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
         this.mutexArmazem = mutexArmazem;
         this.targetWarehouse = targetWarehouse;
-        this.workDuration = workDuration;
+        this.workDuration = workDuration; // Tempo em segundos
         this.random = new Random();
 
         this.spawnX = SPAWN_X_INICIAL + random.nextInt(SPAWN_X_LARGURA);
         this.spawnY = SPAWN_Y;
         
-        // Seu tamanho (80x80)
         this.empacotadorObj = new ObjetoGrafico(this.spawnX, this.spawnY, 80, 80, framesAnimacao); 
-        
-        // Cria a caixa associada
         this.myBox = new Box(painel, this.empacotadorObj);
     }
     
@@ -50,17 +48,35 @@ public class ThreadEmpacotador extends Thread {
         return this.empacotadorObj;
     }
     
-    // Getter para a caixa
     public Box getBox() {
         return this.myBox;
     }
 
-    /** Lógica de animação e trabalho, mostrando a caixa abaixo. */
+    /** Método para simular espera ativa (busy-waiting) */
+    private void busyWait(long milliseconds) {
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + milliseconds;
+        while (System.currentTimeMillis() < endTime) {
+            Thread.onSpinWait(); 
+            if (Thread.currentThread().isInterrupted()) {
+                System.err.println("ThreadEmpacotador " + getId() + " interrompido durante busyWait.");
+                return; 
+            }
+        }
+    }
+
+    /** Lógica de animação e trabalho com passos mais curtos. */
     private void simularTrabalho() {
         myBox.setVisible(true);
         SwingUtilities.invokeLater(() -> myBox.updatePosition(Box.State.BELOW));
 
-        for (int k = 0; k < this.workDuration; k++) {
+        long totalWorkMs = this.workDuration * 1000;
+        int totalSteps = (int) (totalWorkMs / WORK_ANIMATION_STEP_MS);
+        if (totalSteps <= 0) totalSteps = 1; 
+
+        for (int k = 0; k < totalSteps; k++) {
+            if (Thread.currentThread().isInterrupted()) return; 
+
             final int frameAtual = k % 2; 
             
             SwingUtilities.invokeLater(() -> {
@@ -69,13 +85,7 @@ public class ThreadEmpacotador extends Thread {
                 painel.repaint();
             });
 
-            // Simula passo de trabalho
-            double soma = 0;
-            for (int i = 0; i < 200; i++) { 
-                for (int j = 0; j < 2000; j++) {
-                    soma = soma + Math.sin(i) * Math.cos(j);
-                }
-            }
+            busyWait(WORK_ANIMATION_STEP_MS); 
         }
         
         SwingUtilities.invokeLater(() -> {
@@ -84,102 +94,132 @@ public class ThreadEmpacotador extends Thread {
         });
     }
 
-    /** Simula um timer CPU-bound para a animação de movimento. */
-    private void simularPassoDeMovimento() {
-        double soma = 0;
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 1000; j++) {
-                soma = soma + Math.sin(i) * Math.cos(j);
-            }
-        }
-    }
-    
     /** Atualiza a posição do robô E da caixa na thread do Swing. */
     private void updatePositionOnEDT(int x, int y, Box.State boxState) {
         SwingUtilities.invokeLater(() -> {
             empacotadorObj.setLocation(x, y);
-            myBox.updatePosition(boxState); 
+            if (myBox.getObjetoGrafico().isVisible()) { 
+                myBox.updatePosition(boxState); 
+            }
             painel.repaint();
         });
     }
 
-    /** Anima o movimento do robô e da caixa juntos. */
+    /** Anima o movimento por um tempo fixo, usando busyWait para o pacing visual. */
     private void moveTo(int targetX, int targetY, Box.State boxState) {
         int startX = empacotadorObj.getX();
         int startY = empacotadorObj.getY();
         float deltaX = targetX - startX;
         float deltaY = targetY - startY;
-        float stepX = deltaX / MOVING_STEPS;
-        float stepY = deltaY / MOVING_STEPS;
-        float currentX = startX;
-        float currentY = startY;
 
         System.out.println("  [Thread " + this.getId() + "] Movendo de Y=" + startY + " para Y=" + targetY + ". DeltaY = " + deltaY);
 
-        myBox.setVisible(true); 
-        SwingUtilities.invokeLater(() -> myBox.updatePosition(boxState));
-
-        for (int i = 0; i < MOVING_STEPS; i++) {
-            currentX += stepX;
-            currentY += stepY;
-            updatePositionOnEDT(Math.round(currentX), Math.round(currentY), boxState);
-            simularPassoDeMovimento();
+        myBox.setVisible(boxState == Box.State.ABOVE); 
+        if(boxState == Box.State.ABOVE) {
+            SwingUtilities.invokeLater(() -> myBox.updatePosition(boxState));
         }
+
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + (MOVING_DURATION_SECONDS * 1000);
+        long currentTime;
+        long visualStepDelayMs = 50; 
+        
+        while ((currentTime = System.currentTimeMillis()) < endTime) {
+             if (Thread.currentThread().isInterrupted()) return; 
+
+            float progress = (float)(currentTime - startTime) / (MOVING_DURATION_SECONDS * 1000);
+            
+            float currentX = startX + (deltaX * progress);
+            float currentY = startY + (deltaY * progress);
+            
+            updatePositionOnEDT(Math.round(currentX), Math.round(currentY), boxState);
+
+            busyWait(visualStepDelayMs); 
+        }
+        
         updatePositionOnEDT(targetX, targetY, boxState); 
     }
 
-    // O método simularArmazenamento não é mais necessário visualmente,
-    // mas a lógica do mutex ainda precisa de um pequeno delay
+    /** Simula o acesso ao armazém COM animação e espera curta (DENTRO do mutex). */
     private void simularAcessoArmazem() {
-         System.out.println("  [Thread " + this.getId() + "] ACESSOU armazém (logicamente).");
-         // Pequena simulação de tempo para representar o acesso
-         simularPassoDeMovimento(); 
+         System.out.println("  [Thread " + this.getId() + "] ACESSOU armazém. Simulando armazenamento...");
+         
+         SwingUtilities.invokeLater(() -> empacotadorObj.setAnimationFrame(1)); // Hands down
+         busyWait(250); // Metade do tempo
+         if (Thread.currentThread().isInterrupted()) return; // Verifica interrupção
+         SwingUtilities.invokeLater(() -> empacotadorObj.setAnimationFrame(0)); // Ready
+         busyWait(250); // Outra metade do tempo
     }
 
-
-    /** O run() agora executa uma vez, desaparece ao chegar, e termina. */
+    /** O run() com a ordem: Trabalha -> Acquire Mutex -> Move -> Simula Acesso -> Release Pacote -> Desaparece -> Release Mutex */
     @Override
     public void run() {
+        if (Thread.currentThread().isInterrupted()) return; 
         System.out.println("Empacotador (Thread " + this.getId() + ") spawnou em (" + this.spawnX + ", " + this.spawnY + ")");
         
-        // 1. Trabalha (com a caixa visível abaixo)
+        // 1. Trabalha
         System.out.println("Empacotador (Thread " + this.getId() + ") trabalhando...");
         simularTrabalho(); 
-        
-        
-        
-        // 4. Sincronização
+        if (Thread.currentThread().isInterrupted()) return; 
+
+        // 2. Tenta adquirir o mutex ANTES de se mover
         try {
-            System.out.println("Empacotador (Thread " + this.getId() + ") na fila do armazém (invisível)...");
+            System.out.println("Empacotador (Thread " + this.getId() + ") esperando pelo mutex do armazém...");
             mutexArmazem.acquire(); 
+             if (Thread.currentThread().isInterrupted()) {
+                 // Se interrompido enquanto esperava, não precisa liberar o mutex
+                 System.err.println("ThreadEmpacotador " + getId() + " interrompido enquanto esperava pelo mutex.");
+                 return; 
+             }
+             
+            // ----- INÍCIO DA SEÇÃO CRÍTICA -----
+            System.out.println("Empacotador (Thread " + this.getId() + ") adquiriu mutex. Movendo para o armazém...");
 
+            // 3. Move-se até o armazém (com caixa acima)
+            int targetX = targetWarehouse.getObjetoGrafico().getX() + 10; 
+            int targetY = targetWarehouse.getObjetoGrafico().getY() + 10;
+            moveTo(targetX, targetY, Box.State.ABOVE); 
+             // Verifica interrupção após mover
+             if (Thread.currentThread().isInterrupted()) {
+                 // Libera o mutex antes de sair se interrompido aqui
+                 if (mutexArmazem.availablePermits() == 0) mutexArmazem.release(); 
+                 return;
+             }
+
+            // 4. Simula o acesso/armazenamento DENTRO do mutex ANIMADO
             simularAcessoArmazem();
-            
-            // 2. Move-se até o armazém (com a caixa visível acima)
-        System.out.println("Empacotador (Thread " + this.getId() + ") movendo para o armazém...");
-        int targetX = targetWarehouse.getObjetoGrafico().getX() + 10; // Sua coordenada X
-        int targetY = targetWarehouse.getObjetoGrafico().getY() + 10; // Sua coordenada Y
-        // Faz mas sentido após mutex
-        moveTo(targetX, targetY, Box.State.ABOVE); // Move com a caixa ACIMA
+             // Verifica interrupção após simular acesso
+            if (Thread.currentThread().isInterrupted()) {
+                 if (mutexArmazem.availablePermits() == 0) mutexArmazem.release(); 
+                 return;
+            }
 
-        // 3. Chegou ao armazém -> Desaparece IMEDIATAMENTE
-        System.out.println("Empacotador (Thread " + this.getId() + ") chegou e desapareceu.");
-        SwingUtilities.invokeLater(() -> {
-            empacotadorObj.setVisible(false);
-            myBox.setVisible(false); // Esconde a caixa também
-            painel.repaint(); // Garante que desapareçam 
-        });
-
-
-            // Libera o semáforo para o trem
+            // 5. Libera o semáforo para o trem APÓS armazenar
             pacotesProntos.release();
             System.out.println(">>> PACOTE PRONTO (Thread " + this.getId() + "). Total de caixas: " + pacotesProntos.availablePermits());
 
+            // 6. Desaparece IMEDIATAMENTE após liberar o pacote ALTERAR
+            System.out.println("Empacotador (Thread " + this.getId() + ") armazenou e desapareceu.");
+            SwingUtilities.invokeLater(() -> {
+                empacotadorObj.setVisible(false);
+                myBox.setVisible(false); 
+                painel.repaint(); 
+            });
+            
+            // ----- FIM DA SEÇÃO CRÍTICA -----
+
         } catch (InterruptedException e) {
-            e.printStackTrace();
+             Thread.currentThread().interrupt(); 
+             System.err.println("ThreadEmpacotador " + getId() + " interrompido durante seção crítica.");
+             // O finally cuidará de liberar o mutex
         } finally {
-            mutexArmazem.release(); 
-            System.out.println("Empacotador (Thread " + this.getId() + ") saiu do armazém (invisível).");
+            // Garante que o mutex seja liberado, verificando se foi adquirido
+            if (mutexArmazem.availablePermits() == 0) { 
+                 mutexArmazem.release(); 
+                 System.out.println("Empacotador (Thread " + this.getId() + ") liberou mutex e saiu do armazém.");
+            } else {
+                 System.out.println("Empacotador (Thread " + this.getId() + ") terminou sem precisar liberar mutex (provavelmente interrompido antes de acquire).");
+            }
         }
         System.out.println("Empacotador (Thread " + this.getId() + ") terminou.");
     }
