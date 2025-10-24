@@ -12,27 +12,27 @@ import java.util.List;
 
 public class Main {
 
-    private static final int N_CAIXAS_DEFAULT = 5;
+    private static final int N_CAIXAS_DEFAULT = 5; // Caso user não coloque nada
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
 
-            // --- Coleta de Inputs Iniciais ---
+            // --- Coleta Inputs ---
             final int tempoViagemTrem = getInputAsInt("Tempo de Viagem do Trem (segundos):", 10);
             final int tempoArmazenamentoGlobal = getInputAsInt("Tempo de ARMAZENAMENTO (segundos - para todos empacotadores):", 1);
             final int nCaixasParaPartida = getInputAsInt("Nº de Caixas para Partida (N):", N_CAIXAS_DEFAULT);
 
             int M_value;
             while (true) {
-                M_value = getInputAsInt("Capacidade Máxima do Armazém (M > N):", nCaixasParaPartida + 10);
+                M_value = getInputAsInt("Capacidade Máxima do Armazém (M > N):", nCaixasParaPartida + 10); // + 10 é um valor padrão caso o user não input
                 if (M_value > nCaixasParaPartida) {
                     break;
                 } else {
-                    JOptionPane.showMessageDialog(null, "Erro: A Capacidade Máxima (M) deve ser maior que o N de Caixas para Partida.", "Entrada Inválida", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Erro: A Capacidade Máxima (M) deve ser maior que N.", "Entrada Inválida", JOptionPane.ERROR_MESSAGE);
                 }
             }
             final int capacidadeMaximaM = M_value;
-            // --- Fim dos Inputs ---
+            // --- Fim Inputs ---
 
             JFrame frame = new JFrame("Simulação Sincronizada com Semáforo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -44,8 +44,8 @@ public class Main {
             final Semaphore semaforoEspacoDisponivel = new Semaphore(0);
 
             // --- Objetos Estáticos ---
-            final CityObject cidadeA = new CityObject(null, 50, 580); // Passa null temporariamente
-            final Warehouse armazemA = new Warehouse(null, 50, 400); // Passa null temporariamente
+            final CityObject cidadeA = new CityObject(null, 50, 580); // Passa null por enquanto
+            final Warehouse armazemA = new Warehouse(null, 50, 400); // Passa null por enquanto
             final CityObject cidadeB = new CityObject(null, 900, 580);
             final Warehouse armazemB = new Warehouse(null, 900, 400);
 
@@ -111,7 +111,7 @@ public class Main {
                             if (novoEmpacotador.getBox() != null && novoEmpacotador.getBox().getObjetoGrafico() != null) {
                                 painel.adicionarObjetoParaDesenhar(novoEmpacotador.getBox().getObjetoGrafico());
                             } else {
-                                System.err.println("ERRO: Caixa ou Objeto Gráfico da Caixa nulos!");
+                                System.err.println("ERRO: Caixa ou Objeto Gráfico nulo!");
                             }
 
                             novoEmpacotador.start();
@@ -128,10 +128,10 @@ public class Main {
             buttonPanel.add(addButton);
             frame.add(buttonPanel, BorderLayout.SOUTH);
 
-            // --- Inicia a thread do trem ---
+            // --- Iniciando thread do trem ---
             tremThread.start();
 
-            // --- Finaliza Setup da Janela ---
+            // --- Final Setup ---
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);

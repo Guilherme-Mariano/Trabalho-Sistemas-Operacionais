@@ -11,11 +11,11 @@ public class Warehouse {
         this.cordY = y;
 
         this.warehouseObj = new ObjetoGrafico(
-            "/GameAsset/warehouse.png", // 1. Caminho da Imagem
-            cordX,                         // 2. X
-            cordY,                         // 3. Y
-            150,                           // 4. Largura
-            150                            // 5. Altura
+            "/GameAsset/warehouse.png", 
+            cordX,                         
+            cordY,                         
+            150,                           
+            150                            
         );
     }
     

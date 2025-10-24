@@ -11,11 +11,11 @@ public class CityObject {
         this.cordY = y;
 
         this.cityObj = new ObjetoGrafico(
-            "/GameAsset/city_skyline.png", // 1. Caminho da Imagem
-            cordX,                         // 2. X
-            cordY,                         // 3. Y
-            150,                           // 4. Largura
-            150                            // 5. Altura
+            "/GameAsset/city_skyline.png", 
+            cordX,                         
+            cordY,                         
+            150,                           
+            150                           
         );
     }
     

@@ -20,10 +20,8 @@ public class ObjetoGrafico {
     private int largura;
     private int altura;
     
-    // Flag de visibilidade adicionada
-    private volatile boolean isVisible = true; // Objetos começam visíveis por padrão
+    private volatile boolean isVisible = true;
 
-    /** Construtor para uma única imagem com espelhamento (Trem, Cidade, Armazém). */
     public ObjetoGrafico(String caminhoDaImagem, int xInicial, int yInicial, int larguraDesejada, int alturaDesejada) {
         this.x = xInicial;
         this.y = yInicial;
@@ -72,7 +70,7 @@ public class ObjetoGrafico {
     }
 
     private ImageIcon criarImagemEspelhada(Image img) {
-        if (largura <= 0 || altura <= 0) return null; // Previne erro se dimensões forem inválidas
+        if (largura <= 0 || altura <= 0) return null; 
         BufferedImage bufferedImage = new BufferedImage(largura, altura, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = bufferedImage.createGraphics();
         AffineTransform tx = AffineTransform.getScaleInstance(-1, 1);
@@ -84,7 +82,7 @@ public class ObjetoGrafico {
     }
     
     public void setDirecao(Direcao direcao) {
-        if (imagemOriginal == null || imagemEspelhada == null) return; // Segurança
+        if (imagemOriginal == null || imagemEspelhada == null) return;
         if (direcao == Direcao.DIREITA) {
             this.imagemAtual = this.imagemEspelhada;
         } else {

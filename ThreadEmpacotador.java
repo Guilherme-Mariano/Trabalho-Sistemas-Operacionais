@@ -29,9 +29,9 @@ public class ThreadEmpacotador extends Thread {
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300;
     private static final float MOVE_PIXELS_PER_STEP = 2.0f; // Pixels a mover por atualização
-    private static final int MOVE_STEP_DELAY_MS = 20;     // Delay entre atualizações (ms)
-    private static final int WORK_ANIMATION_STEP_MS = 50; // Delay animação trabalho
-    private static final int STORAGE_ANIMATION_DURATION_MS = 300; // Duração visual armaz.
+    private static final int MOVE_STEP_DELAY_MS = 20;     // Delay entre steps
+    private static final int WORK_ANIMATION_STEP_MS = 50; // Delay animação de trabalho
+    private static final int STORAGE_ANIMATION_DURATION_MS = 300; // Duração da animação mãos cima baixo
 
     public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, Semaphore mutexArmazem, Warehouse targetWarehouse, int tempoArmazenamento, int capacidadeMaximaM, Semaphore semaforoEspacoDisponivel, int tempoEmpacotamento) {
         this.painel = painel;
@@ -52,20 +52,22 @@ public class ThreadEmpacotador extends Thread {
     public ObjetoGrafico getObjetoGrafico() { return this.empacotadorObj; }
     public Box getBox() { return this.myBox; }
 
-    /** * Método busy-wait  */
+    /** * busy-wait  */
     private void busyWait(long milliseconds) {
         if (milliseconds <= 0) return;
         long startTime = System.currentTimeMillis();
         long endTime = startTime + milliseconds;
+        double sum = 0;
         while (System.currentTimeMillis() < endTime) {
             if (Thread.currentThread().isInterrupted()) {
                 System.err.println("ThreadEmpacotador " + getId() + " interrupted during busyWait.");
                 return; 
             }
+            sum = sum + Math.sin(endTime);
         }
     }
 
-    /** Lógica de animação e trabalho com passos mais curtos. */
+    /** animação e trabalho. */
     private void simularTrabalho() {
         if (myBox == null || myBox.getObjetoGrafico() == null) {
              System.err.println("Erro: myBox ou seu ObjetoGrafico é nulo em simularTrabalho para Thread " + getId());
@@ -107,7 +109,7 @@ public class ThreadEmpacotador extends Thread {
         });
     }
 
-    /** Atualiza a posição do robô E da caixa na thread do Swing. */
+    /** Atualiza a posição do robô e caixa na thread do Swing. */
     private void updatePositionOnEDT(int x, int y, Box.State boxState) {
         SwingUtilities.invokeLater(() -> {
             if (empacotadorObj == null || myBox == null || myBox.getObjetoGrafico() == null || painel == null) return;
@@ -120,7 +122,7 @@ public class ThreadEmpacotador extends Thread {
         });
     }
 
-    /** Movimento baseado em passo fixo. */
+    /** Movimento baseado no step. */
     private void moveTo(int targetX, int targetY, Box.State boxState) {
         if (empacotadorObj == null) return;
 
@@ -223,6 +225,7 @@ public class ThreadEmpacotador extends Thread {
                      }
 
                     // ----- INÍCIO DA SEÇÃO CRÍTICA -----
+                    // Além do mutex do armazenamento tem o Limite M
                     System.out.println("Empacotador (Thread " + this.getId() + ") adquiriu mutex. Verificando espaço...");
 
                     if (pacotesProntos.availablePermits() < capacidadeMaximaM) {
@@ -243,7 +246,7 @@ public class ThreadEmpacotador extends Thread {
                         System.out.println(">>> PACOTE ARMAZENADO (Thread " + this.getId() + "). Total: " + pacotesProntos.availablePermits());
                         stored = true;
 
-                        // 6. Retorna INSTANTANEAMENTE ao spawn
+                        // 6. Retorna TELEPORTANDO ao spawn 
                         System.out.println("Empacotador (Thread " + this.getId() + ") retornando instantaneamente ao spawn.");
                         SwingUtilities.invokeLater(() -> {
                             if (empacotadorObj != null && painel != null) {
@@ -269,7 +272,7 @@ public class ThreadEmpacotador extends Thread {
                      }
                 }
 
-                // Se NÃO conseguiu armazenar, espera por espaço FORA do mutex
+                // Se NÃO conseguiu armazenar, espera por espaço
                 if (!stored && !Thread.currentThread().isInterrupted()) {
                     try {
                         System.out.println("Empacotador (Thread " + this.getId() + ") dormindo, esperando espaço...");
@@ -278,22 +281,22 @@ public class ThreadEmpacotador extends Thread {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         System.err.println("ThreadEmpacotador " + getId() + " interrompido enquanto esperava por espaço.");
-                        break; // Sai do loop interno
+                        break;
                     }
                 }
-            } // Fim do loop interno de tentativa de armazenamento
+            } // Fim tentativa de armazenamento
 
             if (Thread.currentThread().isInterrupted()) break;
 
-        } // Fim do loop principal while(!interrupted)
+        } // Fim do loop main
 
         System.out.println("Empacotador (Thread " + this.getId() + ") terminando.");
-        // Remove da tela ao terminar (por interrupção)
+        // Remove da tela ao terminar (interrupção)
          SwingUtilities.invokeLater(() -> {
             if(painel != null) {
                 if(empacotadorObj != null) painel.removerObjetoParaDesenhar(empacotadorObj);
                 if(myBox != null && myBox.getObjetoGrafico() != null) painel.removerObjetoParaDesenhar(myBox.getObjetoGrafico());
             }
         });
-    } // Fim do método run()
-} // Fim da classe ThreadEmpacotador
+    } 
+}

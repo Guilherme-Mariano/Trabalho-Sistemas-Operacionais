@@ -1,8 +1,7 @@
-// PainelDeDesenho.java
-import java.awt.Color; // Importar Color
+import java.awt.Color; 
 import java.awt.Dimension;
-import java.awt.Font; // Importar Font
-import java.awt.FontMetrics; // Importar FontMetrics
+import java.awt.Font; 
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +31,7 @@ public class PainelDeDesenho extends JPanel {
         if (imgURL != null) {
             this.backgroundImage = new ImageIcon(imgURL);
         } else {
-            System.err.println("FALHA AO CARREGAR BACKGROUND: /GameAsset/background.png");
+            System.err.println("FALHA AO CARREGAR BACKGROUND");
         }
 
         this.setPreferredSize(new Dimension(1200, 800));
@@ -43,7 +42,7 @@ public class PainelDeDesenho extends JPanel {
         if (obj != null) { 
             this.objetosParaDesenhar.add(obj);
         } else {
-            System.err.println("Tentativa de adicionar objeto gráfico nulo ao painel!");
+            System.err.println("Tentativa de adicionar objeto gráfico nulo");
         }
     }
 
@@ -59,7 +58,7 @@ public class PainelDeDesenho extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // 1. Desenha o fundo
+        // 1. Desenha o background
         if (backgroundImage != null) {
             g.drawImage(backgroundImage.getImage(), 0, 0, getWidth(), getHeight(), this);
         } else {
@@ -67,7 +66,7 @@ public class PainelDeDesenho extends JPanel {
             g.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        // 2. Desenha todos os objetos (trem, robôs, caixas, armazéns, etc.)
+        // 2. Desenha todos os objetos
         synchronized (objetosParaDesenhar) {
             for (ObjetoGrafico obj : objetosParaDesenhar) {
                 if (obj != null && obj.isVisible() && obj.getImagem() != null) {
@@ -76,9 +75,8 @@ public class PainelDeDesenho extends JPanel {
             }
         }
         
-        // --- Desenha a Contagem de Caixas ---
         if (semaforoCaixas != null && warehouseToTrack != null && warehouseToTrack.getObjetoGrafico() != null) {
-            // Pega a contagem atual do semáforo
+            // contagem atual do semáforo
             int currentBoxCount = semaforoCaixas.availablePermits();
             String countText = "Caixas: " + currentBoxCount;
 

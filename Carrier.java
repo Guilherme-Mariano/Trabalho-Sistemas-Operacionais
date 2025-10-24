@@ -15,9 +15,8 @@ public class Carrier {
     private static final String IMAGE_FULL = "/GameAsset/carrier.png";
 
     /**
-     * Construtor do Carrier.
-     * @param panel Referência ao painel de desenho.
-     * @param train Referência ao ObjetoGrafico da locomotiva.
+     * @param panel
+     * @param train Referência locomotiva.
      */
     public Carrier(PainelDeDesenho panel, ObjetoGrafico train) {
         this.painel = panel;
@@ -27,23 +26,20 @@ public class Carrier {
         int carrierWidth = 100;
         int carrierHeight = 70;
 
-        // Calcula a posição inicial relativa ao trem
-        // Usa a direção atual do trem para calcular a posição X inicial
         Direcao initialDirection = train.isVisible() ? Direcao.DIREITA : Direcao.ESQUERDA; // Suposição inicial
         int initialX = calculateX(train.getX(), train.getLargura(), initialDirection, carrierWidth);
         int initialY = train.getY() + (train.getAltura() / 2) - (carrierHeight / 2); // Alinha verticalmente
 
-        // Cria o ObjetoGrafico usando o construtor de animação
         this.carrierObj = new ObjetoGrafico(
             initialX,
             initialY,
             carrierWidth,
             carrierHeight,
-            IMAGE_EMPTY, // Frame 0 = Vazio
-            IMAGE_FULL   // Frame 1 = Cheio
+            IMAGE_EMPTY, 
+            IMAGE_FULL   
         );
 
-        // Começa no estado VAZIO
+        // Começa VAZIO
         setState(State.EMPTY);
     }
 
@@ -52,21 +48,17 @@ public class Carrier {
         return this.carrierObj;
     }
 
-    /** Calcula a posição X do vagão (atrás da locomotiva). */
+    /** Calcula a posição X do vagão. */
     private int calculateX(int trainX, int trainWidth, Direcao trainDirection, int carrierWidth) {
         if (trainDirection == Direcao.DIREITA) {
-            // Se o trem vai para a direita, o vagão fica à esquerda (atrás)
             return trainX - carrierWidth;
-        } else { // Direcao.ESQUERDA
-            // Se o trem vai para a esquerda, o vagão fica à direita (atrás)
+        } else { 
             return trainX + trainWidth;
         }
     }
 
     /**
-     * Atualiza a posição do vagão para seguir o trem.
-     * Deve ser chamado dentro de SwingUtilities.invokeLater.
-     * @param trainDirection A direção atual do trem.
+     * @param trainDirection direção do trem.
      */
     public void updatePosition(Direcao trainDirection) {
         if (trainObj == null || carrierObj == null) return;
@@ -84,7 +76,7 @@ public class Carrier {
         else{
             newX = calculateX(trainX, trainWidth, trainDirection, carrierWidth) - 15;
         }
-        // Mantém o alinhamento vertical com o trem
+        // alinhamento vertical
         int newY = trainY + (trainHeight / 2) - (carrierHeight / 2);
 
         carrierObj.setLocation(newX, newY);
@@ -92,10 +84,10 @@ public class Carrier {
 
     /**
      * Define a aparência do vagão (vazio ou cheio).
-     * @param state O estado desejado (EMPTY ou FULL).
+     * @param state O estado (EMPTY | FULL).
      */
     public void setState(State state) {
-        if (carrierObj == null) return; // Segurança
+        if (carrierObj == null) return;
         final int frameIndex = (state == State.FULL) ? 1 : 0;
         SwingUtilities.invokeLater(() -> {
             carrierObj.setAnimationFrame(frameIndex);

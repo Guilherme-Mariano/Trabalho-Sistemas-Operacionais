@@ -4,8 +4,8 @@ import java.util.concurrent.Semaphore;
 
 public class ThreadTrem extends Thread {
 
-    // Tempo em SEGUNDOS
     private final int tempoViagemSegundos;
+    // Valores Default
     private static final int TEMPO_CARGA_SEGUNDOS = 3;
     private static final long VISUAL_STEP_DELAY_MS = 20;
 
@@ -14,15 +14,15 @@ public class ThreadTrem extends Thread {
     private PainelDeDesenho painel;
     private Semaphore pacotesProntos;
     private int caixasNecessarias; // N
-    private Semaphore semaforoEspacoDisponivel; // Para acordar packers
+    private Semaphore semaforoEspacoDisponivel; // Para acordar empacotadores
     private Direcao direcaoAtual;
 
     public ThreadTrem(PainelDeDesenho painel, Semaphore pacotesProntos, int caixasNecessarias, int tempoViagemSegundos, Semaphore semaforoEspacoDisponivel) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
         this.caixasNecessarias = caixasNecessarias; // N
-        this.tempoViagemSegundos = tempoViagemSegundos; // Tempo de viagem M
-        this.semaforoEspacoDisponivel = semaforoEspacoDisponivel; // Semáforo para acordar
+        this.tempoViagemSegundos = tempoViagemSegundos; 
+        this.semaforoEspacoDisponivel = semaforoEspacoDisponivel; // Vai dar um release para os empacotadores
 
         this.trainObj = new ObjetoGrafico("/GameAsset/locomotive.png", 50, 350, 120, 80);
         this.carrier = new Carrier(painel, this.trainObj);
@@ -38,21 +38,23 @@ public class ThreadTrem extends Thread {
         return this.carrier;
     }
 
-    /** * Método busy-wait SEM Thread.onSpinWait() para maximizar CPU. */
+    /** * BusyWait. */
     private void busyWait(long milliseconds) {
         if (milliseconds <= 0) return;
         long startTime = System.currentTimeMillis();
         long endTime = startTime + milliseconds;
+        double sum =0;
         while (System.currentTimeMillis() < endTime) {
             if (Thread.currentThread().isInterrupted()) {
                 System.err.println("ThreadTrem " + getId() + " interrupted during busyWait.");
-                Thread.currentThread().interrupt(); // Reinterrompe
+                Thread.currentThread().interrupt(); 
                 return;
             }
+            sum = sum + Math.sin(endTime);
         }
     }
 
-    /** Move o trem E o vagão. */
+    /** Move o trem com vagão. */
     private void moveGameObj(int x_step, int y_step) {
         SwingUtilities.invokeLater(() -> {
             if (trainObj != null && carrier != null && painel != null) {
@@ -63,7 +65,7 @@ public class ThreadTrem extends Thread {
         });
     }
 
-    /** Carga dura TEMPO_CARGA_SEGUNDOS usando busyWait */
+    /** Carga usando busyWait */
     public void load_up() {
         System.out.println("Trem carregando...");
         carrier.setState(Carrier.State.FULL);
@@ -74,7 +76,7 @@ public class ThreadTrem extends Thread {
         System.out.println("Trem carregado.");
     }
 
-    /** Descarga dura TEMPO_CARGA_SEGUNDOS usando busyWait */
+    /** Descarga usando busyWait */
     public void unload() {
         System.out.println("Trem descarregando...");
         carrier.setState(Carrier.State.EMPTY);
