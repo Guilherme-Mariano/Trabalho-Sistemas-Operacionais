@@ -1,122 +1,160 @@
 // Main.java
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import javax.swing.JButton; // Importar JButton
-import javax.swing.JOptionPane; // Importar JOptionPane
-import javax.swing.JPanel; // Importar JPanel
-import java.awt.BorderLayout; // Importar BorderLayout
-import java.awt.FlowLayout; // Importar FlowLayout
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.util.concurrent.Semaphore;
-import java.util.Random;
+import java.util.Random; // Mantido
 import java.util.List;
 
 public class Main {
 
-    private static final int N_CAIXAS_PARA_PARTIDA = 2;
+    private static final int N_CAIXAS_DEFAULT = 5;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+
+            // --- Coleta de Inputs Iniciais ---
+            final int tempoViagemTrem = getInputAsInt("Tempo de Viagem do Trem (segundos):", 10);
+            // Pede o Tempo de ARMAZENAMENTO (global) 
+            final int tempoArmazenamentoGlobal = getInputAsInt("Tempo de ARMAZENAMENTO (segundos - para todos empacotadores):", 1);
+            final int nCaixasParaPartida = getInputAsInt("Nº de Caixas para Partida (N):", N_CAIXAS_DEFAULT);
+
+            int M_value;
+            while (true) {
+                M_value = getInputAsInt("Capacidade Máxima do Armazém (M > N):", nCaixasParaPartida + 10);
+                if (M_value > nCaixasParaPartida) {
+                    break;
+                } else {
+                    JOptionPane.showMessageDialog(null, "Erro: A Capacidade Máxima (M) deve ser maior que o N de Caixas para Partida.", "Entrada Inválida", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            final int capacidadeMaximaM = M_value;
+            // --- Fim dos Inputs ---
+
+            // --- Setup da Janela e Painel ---
             JFrame frame = new JFrame("Simulação Sincronizada com Semáforo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            // Botão com borderlayout
-            frame.setLayout(new BorderLayout()); 
+            frame.setLayout(new BorderLayout());
 
-            PainelDeDesenho painel = new PainelDeDesenho();
-            // Colocando Painel de desenho no centro
-            frame.add(painel, BorderLayout.CENTER); 
-            
-            // --- COORDENAÇÃO CENTRAL ---
-            // Variáveis Finais para serem acessíveis no ActionListener
+            final PainelDeDesenho painel = new PainelDeDesenho();
+            frame.add(painel, BorderLayout.CENTER);
+
+            // --- Semáforos ---
             final Semaphore semaforoCaixasProntas = new Semaphore(0);
-            final Semaphore mutexArmazemA = new Semaphore(1); 
+            final Semaphore mutexArmazemA = new Semaphore(1);
+            final Semaphore semaforoEspacoDisponivel = new Semaphore(0);
 
-            // 1. Cria os objetos estáticos PRIMEIRO
-            final CityObject cidadeA = new CityObject(painel, 50, 580); 
-            final Warehouse armazemA = new Warehouse(painel, 50, 400); 
+            // --- Objetos Estáticos ---
+            final CityObject cidadeA = new CityObject(painel, 50, 580);
+            final Warehouse armazemA = new Warehouse(painel, 50, 400);
             final CityObject cidadeB = new CityObject(painel, 900, 580);
             final Warehouse armazemB = new Warehouse(painel, 900, 400);
 
-            // coordenada Y do trilho
-            final int trackYPosition = 390; 
-            final int trackPieceWidth = 50; 
-            final int trackPieceHeight = 40;// altura do trilho
-            final int numberOfTrackPieces = 22; 
+            final int trackYPosition = 390;
+            final int trackPieceWidth = 50;
+            final int trackPieceHeight = 40;
+            final int numberOfTrackPieces = 22;
             final Track trainTrack = new Track(
-                painel, 10, trackYPosition, trackPieceWidth, trackPieceHeight, 
-                numberOfTrackPieces, "/GameAsset/track.png" // asset do trilho
+                painel, 10, trackYPosition, trackPieceWidth, trackPieceHeight,
+                numberOfTrackPieces, "/GameAsset/track.png"
             );
-            
-            // 2. Cria a thread do Trem
-            final ThreadTrem tremThread = new ThreadTrem(painel, semaforoCaixasProntas, N_CAIXAS_PARA_PARTIDA);
-            
-            // 3. Registra os objetos estáticos, O TRILHO, e o trem
+
+            // --- Thread do Trem ---
+            final ThreadTrem tremThread = new ThreadTrem(
+                painel,
+                semaforoCaixasProntas,
+                nCaixasParaPartida,
+                tempoViagemTrem,
+                semaforoEspacoDisponivel
+            );
+
+            // --- Registro de Objetos Gráficos ---
             List<ObjetoGrafico> trackPieces = trainTrack.getTrackPieces();
-            for(ObjetoGrafico piece : trackPieces) {
+            for (ObjetoGrafico piece : trackPieces) {
                 painel.adicionarObjetoParaDesenhar(piece);
             }
-            
-            painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico()); 
-            // Adiciona o Carrier do trem ao painel
+            painel.adicionarObjetoParaDesenhar(tremThread.getObjetoGrafico());
             if (tremThread.getCarrier() != null && tremThread.getCarrier().getObjetoGrafico() != null) {
                 painel.adicionarObjetoParaDesenhar(tremThread.getCarrier().getObjetoGrafico());
             }
-
             painel.adicionarObjetoParaDesenhar(cidadeA.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(armazemA.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(cidadeB.getObjetoGrafico());
             painel.adicionarObjetoParaDesenhar(armazemB.getObjetoGrafico());
 
-            // Adiciona o Botão
+            // --- Botão Adicionar Empacotador ---
             JButton addButton = new JButton("Adicionar Empacotador");
             addButton.addActionListener(e -> {
-                String input = JOptionPane.showInputDialog(frame, "Digite o tempo de empacotamento (segundos):", "Tempo de Trabalho", JOptionPane.PLAIN_MESSAGE);
+                // Pede o tempo de EMPACOTAMENTO aqui
+                String input = JOptionPane.showInputDialog(frame, "Digite o tempo de EMPACOTAMENTO (segundos):", "Tempo de Trabalho", JOptionPane.PLAIN_MESSAGE);
                 if (input != null && !input.trim().isEmpty()) {
                     try {
-                        int tempoDeTrabalho = Integer.parseInt(input.trim());
-                        if (tempoDeTrabalho > 0) {
-                            // Cria um NOVO empacotador com o tempo fornecido
+                        // Usa o tempo de EMPACOTAMENTO fornecido
+                        int tempoEmpacotamentoInput = Integer.parseInt(input.trim());
+                        if (tempoEmpacotamentoInput > 0) {
+                            // Cria um NOVO empacotador
                             ThreadEmpacotador novoEmpacotador = new ThreadEmpacotador(
-                                painel,                  
-                                semaforoCaixasProntas,   
-                                mutexArmazemA,           
-                                armazemA,                
-                                tempoDeTrabalho          
+                                painel,
+                                semaforoCaixasProntas,
+                                mutexArmazemA,
+                                armazemA,
+                                tempoArmazenamentoGlobal, // Tempo de ARMAZENAMENTO (global, do início)
+                                capacidadeMaximaM,       // M (global, do início)
+                                semaforoEspacoDisponivel,
+                                tempoEmpacotamentoInput  // Tempo de EMPACOTAMENTO (individual, do botão)
                             );
-                            
-                            // Adiciona o robô E a sua caixa ao painel
+
                             painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
                             if (novoEmpacotador.getBox() != null && novoEmpacotador.getBox().getObjetoGrafico() != null) {
-                                 painel.adicionarObjetoParaDesenhar(novoEmpacotador.getBox().getObjetoGrafico());
+                                painel.adicionarObjetoParaDesenhar(novoEmpacotador.getBox().getObjetoGrafico());
                             } else {
-                                 System.err.println("ERRO: Caixa ou Objeto Gráfico da Caixa nulos!");
+                                System.err.println("ERRO: Caixa ou Objeto Gráfico da Caixa nulos!");
                             }
-                            
-                            // Inicia a thread do novo empacotador
+
                             novoEmpacotador.start();
                         } else {
-                             JOptionPane.showMessageDialog(frame, "Por favor, digite um número positivo.", "Erro", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(frame, "Por favor, digite um número positivo.", "Erro", JOptionPane.ERROR_MESSAGE);
                         }
                     } catch (NumberFormatException ex) {
                         JOptionPane.showMessageDialog(frame, "Entrada inválida. Por favor, digite um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
-            
-            // Cria um painel para o botão
+
             JPanel buttonPanel = new JPanel(new FlowLayout());
             buttonPanel.add(addButton);
-            
-            // Adiciona o painel do botão na parte inferior da janela
             frame.add(buttonPanel, BorderLayout.SOUTH);
 
-            
-            // 5. Inicia a thread do trem AUTOMÁTICA
+            // --- Inicia a thread do trem ---
             tremThread.start();
-            
-            // Ajusta o tamanho da janela DEPOIS de adicionar todos os componentes
+
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
+    }
+
+    private static int getInputAsInt(String message, int defaultValue) {
+        while (true) {
+            String input = JOptionPane.showInputDialog(null, message, "Configuração Inicial", JOptionPane.PLAIN_MESSAGE);
+            if (input == null) {
+                 System.out.println("Input cancelado para '" + message + "', usando valor padrão: " + defaultValue);
+                 return defaultValue;
+            }
+            try {
+                int value = Integer.parseInt(input.trim());
+                if (value >= 0) {
+                    return value;
+                } else {
+                     JOptionPane.showMessageDialog(null, "Por favor, digite um número não negativo.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(null, "Entrada inválida. Por favor, digite um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 }
