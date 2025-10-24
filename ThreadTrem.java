@@ -103,8 +103,11 @@ public class ThreadTrem extends Thread {
 
         float stepXPerVisualUpdate = totalDistanceX / totalVisualSteps;
 
+        // PARTE RELEVANTE DA ANIMAÇÃO DO TREM 
         for (int i = 0; i < totalVisualSteps; i++) {
              if (Thread.currentThread().isInterrupted()) return;
+
+            // MOVEGAMEOBJ ESTÁ A PASSO DO busyWait
             moveGameObj(Math.round(stepXPerVisualUpdate), 0);
             busyWait(VISUAL_STEP_DELAY_MS);
         }

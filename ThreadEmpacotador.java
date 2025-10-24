@@ -203,6 +203,7 @@ public class ThreadEmpacotador extends Thread {
         if (Thread.currentThread().isInterrupted()) return;
         System.out.println("Empacotador (Thread " + this.getId() + ") iniciado com tempo de empacotamento: " + this.tempoEmpacotamento + "s. Spawn em (" + this.spawnX + ", " + this.spawnY + ")");
 
+        // Isso é equivalente a um while true, mas é mais recomendável no contexto de thread
         while (!Thread.currentThread().isInterrupted()) {
 
             // 1. Trabalha
