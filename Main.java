@@ -7,7 +7,7 @@ import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.util.concurrent.Semaphore;
-import java.util.Random; // Mantido
+import java.util.Random;
 import java.util.List;
 
 public class Main {
@@ -34,13 +34,9 @@ public class Main {
             final int capacidadeMaximaM = M_value;
             // --- Fim dos Inputs ---
 
-            // --- Setup da Janela e Painel ---
             JFrame frame = new JFrame("Simulação Sincronizada com Semáforo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setLayout(new BorderLayout());
-
-            final PainelDeDesenho painel = new PainelDeDesenho();
-            frame.add(painel, BorderLayout.CENTER);
 
             // --- Semáforos ---
             final Semaphore semaforoCaixasProntas = new Semaphore(0);
@@ -48,11 +44,18 @@ public class Main {
             final Semaphore semaforoEspacoDisponivel = new Semaphore(0);
 
             // --- Objetos Estáticos ---
-            final CityObject cidadeA = new CityObject(painel, 50, 580);
-            final Warehouse armazemA = new Warehouse(painel, 50, 400);
-            final CityObject cidadeB = new CityObject(painel, 900, 580);
-            final Warehouse armazemB = new Warehouse(painel, 900, 400);
+            final CityObject cidadeA = new CityObject(null, 50, 580); // Passa null temporariamente
+            final Warehouse armazemA = new Warehouse(null, 50, 400); // Passa null temporariamente
+            final CityObject cidadeB = new CityObject(null, 900, 580);
+            final Warehouse armazemB = new Warehouse(null, 900, 400);
 
+            // --- Painel de Desenho ---
+            // Passa o semáforo e o armazém A para o painel
+            final PainelDeDesenho painel = new PainelDeDesenho(semaforoCaixasProntas, armazemA);
+            frame.add(painel, BorderLayout.CENTER);
+
+
+            // --- Trilho ---
             final int trackYPosition = 390;
             final int trackPieceWidth = 50;
             final int trackPieceHeight = 40;
@@ -87,22 +90,21 @@ public class Main {
 
             // --- Botão Adicionar Empacotador ---
             JButton addButton = new JButton("Adicionar Empacotador");
-            addButton.addActionListener(e -> { // Lambda expression (inner class context)
+            addButton.addActionListener(e -> {
                 String input = JOptionPane.showInputDialog(frame, "Digite o tempo de EMPACOTAMENTO (segundos):", "Tempo de Trabalho", JOptionPane.PLAIN_MESSAGE);
                 if (input != null && !input.trim().isEmpty()) {
                     try {
                         int tempoEmpacotamentoInput = Integer.parseInt(input.trim());
                         if (tempoEmpacotamentoInput > 0) {
-                            // Cria um NOVO empacotador
                             ThreadEmpacotador novoEmpacotador = new ThreadEmpacotador(
                                 painel,
                                 semaforoCaixasProntas,
                                 mutexArmazemA,
                                 armazemA,
-                                tempoArmazenamentoGlobal, // Tempo de ARMAZENAMENTO (global)
-                                capacidadeMaximaM,       // M (global)
+                                tempoArmazenamentoGlobal, // Tempo global de Armazenamento
+                                capacidadeMaximaM,       // M
                                 semaforoEspacoDisponivel,
-                                tempoEmpacotamentoInput  // Tempo de EMPACOTAMENTO (individual)
+                                tempoEmpacotamentoInput  // Tempo individual de Empacotamento
                             );
 
                             painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
@@ -146,9 +148,7 @@ public class Main {
             }
             try {
                 int value = Integer.parseInt(input.trim());
-                 // Permite 0 apenas para tempo de armazenamento
-                if (value >= 0) {
-                    // Verificação M > N é feita após coletar ambos os valores
+                 if (value >= 0) {
                     return value;
                 } else {
                      JOptionPane.showMessageDialog(null, "Por favor, digite um número não negativo.", "Erro", JOptionPane.ERROR_MESSAGE);
