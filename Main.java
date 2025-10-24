@@ -19,7 +19,6 @@ public class Main {
 
             // --- Coleta de Inputs Iniciais ---
             final int tempoViagemTrem = getInputAsInt("Tempo de Viagem do Trem (segundos):", 10);
-            // Pede o Tempo de ARMAZENAMENTO (global) 
             final int tempoArmazenamentoGlobal = getInputAsInt("Tempo de ARMAZENAMENTO (segundos - para todos empacotadores):", 1);
             final int nCaixasParaPartida = getInputAsInt("Nº de Caixas para Partida (N):", N_CAIXAS_DEFAULT);
 
@@ -88,12 +87,10 @@ public class Main {
 
             // --- Botão Adicionar Empacotador ---
             JButton addButton = new JButton("Adicionar Empacotador");
-            addButton.addActionListener(e -> {
-                // Pede o tempo de EMPACOTAMENTO aqui
+            addButton.addActionListener(e -> { // Lambda expression (inner class context)
                 String input = JOptionPane.showInputDialog(frame, "Digite o tempo de EMPACOTAMENTO (segundos):", "Tempo de Trabalho", JOptionPane.PLAIN_MESSAGE);
                 if (input != null && !input.trim().isEmpty()) {
                     try {
-                        // Usa o tempo de EMPACOTAMENTO fornecido
                         int tempoEmpacotamentoInput = Integer.parseInt(input.trim());
                         if (tempoEmpacotamentoInput > 0) {
                             // Cria um NOVO empacotador
@@ -102,10 +99,10 @@ public class Main {
                                 semaforoCaixasProntas,
                                 mutexArmazemA,
                                 armazemA,
-                                tempoArmazenamentoGlobal, // Tempo de ARMAZENAMENTO (global, do início)
-                                capacidadeMaximaM,       // M (global, do início)
+                                tempoArmazenamentoGlobal, // Tempo de ARMAZENAMENTO (global)
+                                capacidadeMaximaM,       // M (global)
                                 semaforoEspacoDisponivel,
-                                tempoEmpacotamentoInput  // Tempo de EMPACOTAMENTO (individual, do botão)
+                                tempoEmpacotamentoInput  // Tempo de EMPACOTAMENTO (individual)
                             );
 
                             painel.adicionarObjetoParaDesenhar(novoEmpacotador.getObjetoGrafico());
@@ -132,12 +129,14 @@ public class Main {
             // --- Inicia a thread do trem ---
             tremThread.start();
 
+            // --- Finaliza Setup da Janela ---
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
     }
 
+    /** Helper para obter input inteiro do usuário com valor padrão. */
     private static int getInputAsInt(String message, int defaultValue) {
         while (true) {
             String input = JOptionPane.showInputDialog(null, message, "Configuração Inicial", JOptionPane.PLAIN_MESSAGE);
@@ -147,7 +146,9 @@ public class Main {
             }
             try {
                 int value = Integer.parseInt(input.trim());
+                 // Permite 0 apenas para tempo de armazenamento
                 if (value >= 0) {
+                    // Verificação M > N é feita após coletar ambos os valores
                     return value;
                 } else {
                      JOptionPane.showMessageDialog(null, "Por favor, digite um número não negativo.", "Erro", JOptionPane.ERROR_MESSAGE);

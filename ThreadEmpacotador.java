@@ -16,9 +16,9 @@ public class ThreadEmpacotador extends Thread {
     private Warehouse targetWarehouse;
     private int spawnX;
     private int spawnY;
-    private int tempoArmazenamento; // Tempo GLOBAL para simularAcessoArmazem (em segundos)
+    private int tempoArmazenamento; // Tempo GLOBAL (em segundos)
     private int capacidadeMaximaM;
-    private int tempoEmpacotamento; // Tempo INDIVIDUAL para simularTrabalho (em segundos)
+    private int tempoEmpacotamento; // Tempo INDIVIDUAL (em segundos)
 
     private final String[] framesAnimacao = {
         "/GameAsset/robot_ready.png",
@@ -28,56 +28,57 @@ public class ThreadEmpacotador extends Thread {
     private static final int SPAWN_Y = 430;
     private static final int SPAWN_X_INICIAL = 20;
     private static final int SPAWN_X_LARGURA = 300;
-    private static final int MOVING_DURATION_SECONDS = 5;
-    private static final int WORK_ANIMATION_STEP_MS = 100;
+    private static final float MOVE_PIXELS_PER_STEP = 2.0f; // Pixels a mover por atualização
+    private static final int MOVE_STEP_DELAY_MS = 20;     // Delay entre atualizações (ms)
+    private static final int WORK_ANIMATION_STEP_MS = 50; // Delay animação trabalho
+    private static final int STORAGE_ANIMATION_DURATION_MS = 300; // Duração visual armaz.
 
-    // Construtor com 7 parâmetros
     public ThreadEmpacotador(PainelDeDesenho painel, Semaphore pacotesProntos, Semaphore mutexArmazem, Warehouse targetWarehouse, int tempoArmazenamento, int capacidadeMaximaM, Semaphore semaforoEspacoDisponivel, int tempoEmpacotamento) {
         this.painel = painel;
         this.pacotesProntos = pacotesProntos;
         this.mutexArmazem = mutexArmazem;
         this.targetWarehouse = targetWarehouse;
-        this.tempoArmazenamento = tempoArmazenamento; // Armazena o tempo global
+        this.tempoArmazenamento = tempoArmazenamento;
         this.capacidadeMaximaM = capacidadeMaximaM;
         this.semaforoEspacoDisponivel = semaforoEspacoDisponivel;
-        this.tempoEmpacotamento = tempoEmpacotamento; // Armazena o tempo individual
+        this.tempoEmpacotamento = tempoEmpacotamento;
         this.random = new Random();
-
         this.spawnX = SPAWN_X_INICIAL + random.nextInt(SPAWN_X_LARGURA);
         this.spawnY = SPAWN_Y;
-
         this.empacotadorObj = new ObjetoGrafico(this.spawnX, this.spawnY, 80, 80, framesAnimacao);
         this.myBox = new Box(painel, this.empacotadorObj);
     }
 
-    public ObjetoGrafico getObjetoGrafico() {
-        return this.empacotadorObj;
-    }
+    public ObjetoGrafico getObjetoGrafico() { return this.empacotadorObj; }
+    public Box getBox() { return this.myBox; }
 
-    public Box getBox() {
-        return this.myBox;
-    }
-
-    /** Método para simular espera ativa (busy-waiting) */
+    /** * Método busy-wait  */
     private void busyWait(long milliseconds) {
         if (milliseconds <= 0) return;
         long startTime = System.currentTimeMillis();
         long endTime = startTime + milliseconds;
         while (System.currentTimeMillis() < endTime) {
-            Thread.onSpinWait();
             if (Thread.currentThread().isInterrupted()) {
                 System.err.println("ThreadEmpacotador " + getId() + " interrupted during busyWait.");
-                return;
+                return; 
             }
         }
     }
 
-    /** Lógica de animação e trabalho usando tempoEmpacotamento. */
+    /** Lógica de animação e trabalho com passos mais curtos. */
     private void simularTrabalho() {
-        myBox.setVisible(true);
-        SwingUtilities.invokeLater(() -> myBox.updatePosition(Box.State.BELOW));
+        if (myBox == null || myBox.getObjetoGrafico() == null) {
+             System.err.println("Erro: myBox ou seu ObjetoGrafico é nulo em simularTrabalho para Thread " + getId());
+             return;
+        }
 
-        // Usa o tempo de EMPACOTAMENTO individual
+        if (!myBox.getObjetoGrafico().isVisible()) {
+            myBox.setVisible(true);
+            SwingUtilities.invokeLater(() -> myBox.updatePosition(Box.State.BELOW));
+        } else {
+             SwingUtilities.invokeLater(() -> myBox.updatePosition(Box.State.BELOW));
+        }
+
         long totalWorkMs = this.tempoEmpacotamento * 1000;
         int totalSteps = (int) (totalWorkMs / WORK_ANIMATION_STEP_MS);
         if (totalSteps <= 0) totalSteps = 1;
@@ -88,23 +89,29 @@ public class ThreadEmpacotador extends Thread {
             final int frameAtual = k % 2;
 
             SwingUtilities.invokeLater(() -> {
-                empacotadorObj.setAnimationFrame(frameAtual);
-                myBox.updatePosition(Box.State.BELOW);
-                painel.repaint();
+                if (empacotadorObj != null && myBox != null && painel != null) {
+                    empacotadorObj.setAnimationFrame(frameAtual);
+                    myBox.updatePosition(Box.State.BELOW);
+                    painel.repaint();
+                }
             });
 
             busyWait(WORK_ANIMATION_STEP_MS);
         }
 
         SwingUtilities.invokeLater(() -> {
-            empacotadorObj.setAnimationFrame(0);
-            painel.repaint();
+             if (empacotadorObj != null && painel != null) {
+                empacotadorObj.setAnimationFrame(0);
+                painel.repaint();
+             }
         });
     }
 
     /** Atualiza a posição do robô E da caixa na thread do Swing. */
     private void updatePositionOnEDT(int x, int y, Box.State boxState) {
         SwingUtilities.invokeLater(() -> {
+            if (empacotadorObj == null || myBox == null || myBox.getObjetoGrafico() == null || painel == null) return;
+
             empacotadorObj.setLocation(x, y);
             if (myBox.getObjetoGrafico().isVisible()) {
                 myBox.updatePosition(boxState);
@@ -113,63 +120,82 @@ public class ThreadEmpacotador extends Thread {
         });
     }
 
-    /** Anima o movimento por um tempo fixo. */
+    /** Movimento baseado em passo fixo. */
     private void moveTo(int targetX, int targetY, Box.State boxState) {
+        if (empacotadorObj == null) return;
+
         int startX = empacotadorObj.getX();
         int startY = empacotadorObj.getY();
         float deltaX = targetX - startX;
         float deltaY = targetY - startY;
 
-        System.out.println("  [Thread " + this.getId() + "] Movendo de Y=" + startY + " para Y=" + targetY + ". DeltaY = " + deltaY);
+        System.out.println("  [Thread " + this.getId() + "] Movendo de ("+startX+","+startY+") para ("+targetX+","+targetY+"). DeltaY = " + deltaY);
 
-        myBox.setVisible(boxState == Box.State.ABOVE);
-        if(boxState == Box.State.ABOVE) {
+        float totalDistance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (totalDistance < MOVE_PIXELS_PER_STEP) {
+            updatePositionOnEDT(targetX, targetY, boxState);
+            return;
+        }
+
+        int numberOfSteps = (int) (totalDistance / MOVE_PIXELS_PER_STEP);
+        if (numberOfSteps <= 0) numberOfSteps = 1;
+
+        float stepX = deltaX / numberOfSteps;
+        float stepY = deltaY / numberOfSteps;
+
+        if (myBox != null) myBox.setVisible(boxState == Box.State.ABOVE);
+        if(boxState == Box.State.ABOVE && myBox != null) {
             SwingUtilities.invokeLater(() -> myBox.updatePosition(boxState));
         }
 
-        long startTime = System.currentTimeMillis();
-        long endTime = startTime + (MOVING_DURATION_SECONDS * 1000);
-        long currentTime;
-        long visualStepDelayMs = 50;
+        float currentX = startX;
+        float currentY = startY;
 
-        while ((currentTime = System.currentTimeMillis()) < endTime) {
+        for (int i = 0; i < numberOfSteps; i++) {
              if (Thread.currentThread().isInterrupted()) return;
 
-            float progress = (float)(currentTime - startTime) / (MOVING_DURATION_SECONDS * 1000);
-
-            float currentX = startX + (deltaX * progress);
-            float currentY = startY + (deltaY * progress);
+            currentX += stepX;
+            currentY += stepY;
 
             updatePositionOnEDT(Math.round(currentX), Math.round(currentY), boxState);
 
-            busyWait(visualStepDelayMs);
+            busyWait(MOVE_STEP_DELAY_MS);
         }
 
         updatePositionOnEDT(targetX, targetY, boxState);
     }
 
-    /** Simula o acesso ao armazém usando tempoArmazenamento. */
+
+    /** Animação visual de armazenamento + Espera restante. */
     private void simularAcessoArmazem() {
-         System.out.println("  [Thread " + this.getId() + "] ACESSOU armazém. Simulando armazenamento ("+ this.tempoArmazenamento + "s)...");
+         System.out.println("  [Thread " + this.getId() + "] ACESSOU armazém. Simulando armazenamento ("+ this.tempoArmazenamento + "s total)...");
 
-         myBox.setVisible(false);
+         if (myBox != null) myBox.setVisible(false);
 
-         // Usa o tempo de ARMAZENAMENTO global
+         long animationStepMs = STORAGE_ANIMATION_DURATION_MS / 2;
+
+         SwingUtilities.invokeLater(() -> { if(empacotadorObj != null) empacotadorObj.setAnimationFrame(1); });
+         busyWait(animationStepMs);
+         if (Thread.currentThread().isInterrupted()) return;
+
+         SwingUtilities.invokeLater(() -> { if(empacotadorObj != null) empacotadorObj.setAnimationFrame(0); });
+         busyWait(animationStepMs);
+         if (Thread.currentThread().isInterrupted()) return;
+
          long totalStorageMs = this.tempoArmazenamento * 1000;
-         long stepTimeMs = 250;
-         long startTime = System.currentTimeMillis();
+         long remainingWaitMs = totalStorageMs - STORAGE_ANIMATION_DURATION_MS;
 
-         while(System.currentTimeMillis() < startTime + totalStorageMs) {
-             if (Thread.currentThread().isInterrupted()) return;
-
-             SwingUtilities.invokeLater(() -> empacotadorObj.setAnimationFrame(1));
-             busyWait(stepTimeMs);
-             if (Thread.currentThread().isInterrupted()) return;
-
-             SwingUtilities.invokeLater(() -> empacotadorObj.setAnimationFrame(0));
-             busyWait(stepTimeMs);
+         if (remainingWaitMs > 0) {
+             System.out.println("  [Thread " + this.getId() + "] Animação visual concluída, esperando restante: " + remainingWaitMs + "ms");
+             busyWait(remainingWaitMs);
+         } else {
+              System.out.println("  [Thread " + this.getId() + "] Tempo armazenamento <= duração animação visual, espera adicional pulada.");
          }
-         SwingUtilities.invokeLater(() -> empacotadorObj.setAnimationFrame(0));
+
+         SwingUtilities.invokeLater(() -> {
+            if(empacotadorObj != null) empacotadorObj.setAnimationFrame(0);
+         });
     }
 
     @Override
@@ -179,7 +205,7 @@ public class ThreadEmpacotador extends Thread {
 
         while (!Thread.currentThread().isInterrupted()) {
 
-            // 1. Trabalha (usa tempoEmpacotamento)
+            // 1. Trabalha
             System.out.println("Empacotador (Thread " + this.getId() + ") trabalhando...");
             simularTrabalho();
             if (Thread.currentThread().isInterrupted()) break;
@@ -201,34 +227,35 @@ public class ThreadEmpacotador extends Thread {
                     if (pacotesProntos.availablePermits() < capacidadeMaximaM) {
                         System.out.println("Empacotador (Thread " + this.getId() + ") Espaço disponível. Movendo para o armazém...");
 
-                        // Move para o armazém
+                        // 3. Move para o armazém
                         int targetX = targetWarehouse.getObjetoGrafico().getX() + 10;
                         int targetY = targetWarehouse.getObjetoGrafico().getY() + 10;
                         moveTo(targetX, targetY, Box.State.ABOVE);
                          if (Thread.currentThread().isInterrupted()) break;
 
-                        // Simula acesso (usa tempoArmazenamento)
+                        // 4. Simula acesso
                         simularAcessoArmazem();
                          if (Thread.currentThread().isInterrupted()) break;
 
-                        // Libera pacote
+                        // 5. Libera pacote
                         pacotesProntos.release();
                         System.out.println(">>> PACOTE ARMAZENADO (Thread " + this.getId() + "). Total: " + pacotesProntos.availablePermits());
-                        stored = true; // Sai do loop interno
+                        stored = true;
 
-                        // Retorna ao spawn
+                        // 6. Retorna INSTANTANEAMENTE ao spawn
                         System.out.println("Empacotador (Thread " + this.getId() + ") retornando instantaneamente ao spawn.");
                         SwingUtilities.invokeLater(() -> {
-                            empacotadorObj.setLocation(spawnX, spawnY);
-                            myBox.setVisible(true);
-                            myBox.updatePosition(Box.State.BELOW);
-                            painel.repaint();
+                            if (empacotadorObj != null && painel != null) {
+                                empacotadorObj.setLocation(spawnX, spawnY);
+                                painel.repaint();
+                            }
                         });
+
 
                     } else {
                         System.out.println("Empacotador (Thread " + this.getId() + ") Armazém CHEIO ( >= " + capacidadeMaximaM + "). Liberando mutex e esperando.");
                     }
-                    // ----- FIM DA SEÇÃO CRÍTICA ----- (Mutex liberado no finally)
+                    // ----- FIM DA SEÇÃO CRÍTICA -----
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -250,22 +277,22 @@ public class ThreadEmpacotador extends Thread {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         System.err.println("ThreadEmpacotador " + getId() + " interrompido enquanto esperava por espaço.");
-                        break; 
+                        break; // Sai do loop interno
                     }
                 }
-            } 
+            } // Fim do loop interno de tentativa de armazenamento
 
             if (Thread.currentThread().isInterrupted()) break;
 
-        } 
+        } // Fim do loop principal while(!interrupted)
 
         System.out.println("Empacotador (Thread " + this.getId() + ") terminando.");
-        
+        // Remove da tela ao terminar (por interrupção)
          SwingUtilities.invokeLater(() -> {
             if(painel != null) {
                 if(empacotadorObj != null) painel.removerObjetoParaDesenhar(empacotadorObj);
                 if(myBox != null && myBox.getObjetoGrafico() != null) painel.removerObjetoParaDesenhar(myBox.getObjetoGrafico());
             }
         });
-    }
-}
+    } // Fim do método run()
+} // Fim da classe ThreadEmpacotador
